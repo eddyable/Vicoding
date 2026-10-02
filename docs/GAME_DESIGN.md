@@ -2,6 +2,8 @@
 
 > **Build the algorithm. Watch it run. Then read the code you just wrote.**
 
+> 📚 Detailed design (races, gear, mechanics, pattern visuals, level walkthroughs) lives in [`design/`](design/). See the [index](README.md).
+
 Vicoding is a puzzle game where players solve LeetCode/HackerRank-style problems by **building algorithms visually** on a canvas: they place data structures, drop in agents (pointers, windows, queues, recursive clones), attach rules to them, and press **Run** to watch the execution play out. Every visual solution compiles live into real code (Python / JavaScript / Java), so the player gradually moves from "I can see it" to "I can write it on a whiteboard at Google."
 
 ---
