@@ -6,3 +6,5 @@ export * from "./replay.ts";
 export * from "./validate.ts";
 export * from "./builders.ts";
 export * from "./stamina.ts";
+export * from "./edit.ts";
+export * from "./timeline.ts";

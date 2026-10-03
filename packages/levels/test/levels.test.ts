@@ -11,7 +11,7 @@ import {
   type NodeId,
   type Program,
 } from "@vicoding/engine";
-import { getLevel, levels, runCase, seededRandom, randomInt, type LevelModule } from "../src/index.ts";
+import { charge, getLevel, levels, runCase, seededRandom, randomInt, type LevelModule } from "../src/index.ts";
 
 function validationContext(level: LevelModule) {
   const { inputs } = level.definition;
@@ -97,6 +97,18 @@ describe.each(levels.map((level) => [level.definition.id, level] as const))("lev
     expect(definition.starterPlan !== undefined).toBe(needsStarter);
     if (definition.starterPlan) expect(validate(definition.starterPlan, validationContext(level))).toEqual([]);
   });
+
+  it("gives a fix level a starter plan that is actually broken on the examples", () => {
+    if (definition.step !== "fix") return;
+    const results = definition.examples.map((e) => runCase(level, definition.starterPlan!, e.input));
+    expect(results.some((r) => !r.passed)).toBe(true);
+  });
+
+  it("awards the reference plan three stars when charging", () => {
+    const report = charge(level, referencePlan);
+    expect(report.firstFailure).toBeUndefined();
+    expect(report.stars).toBe(3);
+  });
 });
 
 describe("level-specific design promises", () => {
@@ -116,6 +128,49 @@ describe("level-specific design promises", () => {
     expect(attack.expected).toBe(-1);
   });
 
+  it("Tallest Scroll: charging rates slow, bloated and broken plans correctly", () => {
+    const level = getLevel("arraia-01-tallest-scroll")!;
+    const b = createBuilder("charge-");
+
+    // Grukk's way: a scroll is the tallest if no other scroll is taller (O(n²)).
+    const bruteForce = b.program(
+      b.forEach(
+        "i",
+        "scrolls",
+        b.set("tallest", b.bool(true)),
+        b.forEach("j", "scrolls", b.iff([b.when(b.gt(b.at("scrolls", "j"), b.at("scrolls", "i")), b.set("tallest", b.bool(false)))])),
+        b.iff([b.when(b.eq("tallest", b.bool(true)), b.ret(b.at("scrolls", "i")))]),
+      ),
+    );
+    const slow = charge(level, bruteForce);
+    expect(slow.firstFailure).toBeUndefined();
+    expect(slow.horde.overwhelmed).toBe(true);
+    expect(slow.stars).toBe(1);
+
+    // Correct and linear, but with redundant cards: misses par.
+    const bloated = b.program(
+      b.set("best", b.at("scrolls", 0)),
+      b.set("unused", 0),
+      b.set("unused", 1),
+      b.forEach("i", "scrolls", b.iff([b.when(b.gt(b.at("scrolls", "i"), "best"), b.set("best", b.at("scrolls", "i")))])),
+      b.set("unused", 2),
+      b.ret("best"),
+    );
+    expect(charge(level, bloated).stars).toBe(2);
+
+    const broken = b.program(b.ret(b.at("scrolls", 0)));
+    const report = charge(level, broken);
+    expect(report.stars).toBe(0);
+    expect(report.firstFailure?.wave).toBe("vanguard");
+  });
+
+  it("Imp on the Bridge: the starter plan fails with the Off-by-One Imp", () => {
+    const level = getLevel("arraia-03-imp-on-the-bridge")!;
+    const report = charge(level, level.definition.starterPlan!);
+    expect(report.firstFailure?.fault?.code).toBe("OUT_OF_BOUNDS");
+    expect(report.stars).toBe(0);
+  });
+
   it("Mirror Twins: the foresight answer matches what actually happens", () => {
     const level = getLevel("arraia-02-mirror-twins")!;
     const { foresight, starterPlan } = level.definition;
@@ -126,7 +181,7 @@ describe("level-specific design promises", () => {
   });
 
   it("levels are in campaign order with unique ids", () => {
-    expect(levels.map((l) => l.definition.order)).toEqual([1, 2]);
+    expect(levels.map((l) => l.definition.order)).toEqual([1, 2, 3]);
     expect(new Set(levels.map((l) => l.definition.id)).size).toBe(levels.length);
   });
 });
