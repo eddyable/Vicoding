@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft for review |
+| **Status** | Approved (2026-10-03) |
 | **Owner** | Product (Vicoding) |
 | **Date** | 2026-10-03 |
 | **Platforms** | Web (desktop + mobile browsers), iOS and Android (Capacitor test builds) |
@@ -133,8 +133,8 @@ Landing (web link / app icon)
 ### 8.6 Transfer test
 | ID | Requirement | Priority |
 |---|---|---|
-| FR-50 | Plain code editor (CodeMirror 6), language choice Python / JavaScript | Must |
-| FR-51 | Run against hidden tests: JavaScript in a Web Worker; Python via Pyodide, lazy-loaded on this screen only | Must |
+| FR-50 | Plain code editor (CodeMirror 6), Python (JavaScript deferred, see §14) | Must |
+| FR-51 | Run against hidden tests: Python via Pyodide, lazy-loaded on this screen only | Must |
 | FR-52 | 15-minute soft limit, then a "show solution" option | Must |
 | FR-53 | 24-hour follow-up via a unique link (web) or local notification (mobile) | Should |
 
@@ -185,7 +185,7 @@ Landing (web link / app icon)
 | 1 | Monorepo, engine (plan language, interpreter, event log) with unit tests; levels 1–2 as data |
 | 2 | Board rendering + timeline; plan editor (desktop drag and drop); levels 1–3 playable on web |
 | 3 | Waves, counterexamples, Ogre, stars, code reveal; levels 4–5; phone layout + tap-to-place |
-| 4 | Transfer test (JS + Pyodide), analytics, Capacitor iOS/Android builds, polish, bug bash |
+| 4 | Transfer test (Pyodide), analytics, Capacitor iOS/Android builds, polish, bug bash |
 | 5 | Playtests and synthesis |
 
 ## 13. Risks
@@ -198,8 +198,12 @@ Landing (web link / app icon)
 | Scope creep into the fantasy layer | Delays the test | Non-goals list (§5) is binding for v0 |
 | App-store review delays | Mobile testers blocked | Use TestFlight / internal testing only; the web link works on phones as a fallback |
 
-## 14. Open questions
-1. Should the transfer test be Python only (the most common interview language) to simplify, with JavaScript as a later addition?
-2. Do we show the code panel live during building (Mirror stage) in level 5, or only on victory? (Proposed: only on victory for levels 1–4, live in level 5 to test the transition.)
-3. Minimal art direction for v0: plain geometric style, or a light Arraia theme with Captain Ada's portrait? (Proposed: plain style + one portrait, to keep focus on the loop.)
+## 14. Decisions and open questions
+
+**Decided (proposed defaults adopted at approval; can be revisited):**
+1. Transfer test: **Python only** for v0; JavaScript later.
+2. Code panel: shown **only on victory** in levels 1–4, **live while building** in level 5 to test the transition.
+3. Art direction: **plain geometric style + one Captain Ada portrait**.
+
+**Still open:**
 4. Recruiting channel and incentive for testers (gift cards, early access).
