@@ -11,7 +11,8 @@ A game where you learn coding-interview patterns by building algorithms visually
 packages/
   engine/   Battle Plan language, interpreter, event log (Battle Chronicle), replay, validation
   levels/   Level definitions, reference solutions, test-case generators
-apps/       (coming) web app and Capacitor mobile shell
+apps/
+  web/      Vite + React web app: level map, board, timeline, card editor, charge results
 docs/       Game design, PRD, architecture decisions
 ```
 
@@ -21,6 +22,11 @@ Requires Node 22+ and pnpm 10.
 
 ```bash
 pnpm install
+pnpm dev         # play locally at http://localhost:5173
 pnpm test        # unit tests (Vitest)
 pnpm typecheck   # TypeScript, strict
+pnpm build       # production build of the web app
+
+# End-to-end tests (Playwright, desktop + phone viewports)
+pnpm --filter @vicoding/web e2e
 ```

@@ -38,6 +38,8 @@ export function createBuilder(prefix = "n") {
     /** "value at": `at("nums", "L")` reads the tile under pointer L. */
     at: (array: string, index: ExprLike): Expr => ({ kind: "at", id: id(), array, index: expr(index) }),
     len: (array: string): Expr => ({ kind: "len", id: id(), array }),
+    /** Any binary operator, e.g. `bin("<", "L", "R")`. */
+    bin: (op: BinaryOp, left: ExprLike, right: ExprLike): Expr => binary(op)(left, right),
     add: binary("+"),
     sub: binary("-"),
     mul: binary("*"),
