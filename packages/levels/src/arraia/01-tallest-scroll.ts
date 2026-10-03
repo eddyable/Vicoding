@@ -49,6 +49,7 @@ export const tallestScroll: LevelModule = {
       parCards: 6,
       travelLight: true,
     },
+    codeVisibility: "victory",
     handMode: true,
     warCouncil: {
       question: "The shelf doubles in length. Roughly how much longer does your sweep take?",

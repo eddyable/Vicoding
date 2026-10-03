@@ -49,6 +49,7 @@ export const mirrorTwins: LevelModule = {
       parCards: 6,
       travelLight: true,
     },
+    codeVisibility: "victory",
     handMode: false,
     starterPlan: referencePlan,
     foresight: {

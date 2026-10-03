@@ -62,6 +62,8 @@ export interface LevelDefinition {
   };
   /** Level 1 starts with the player moving the pointer by hand. */
   handMode: boolean;
+  /** When the player sees their plan as code: after winning, or live while building. */
+  codeVisibility: "victory" | "live";
   /** Pre-built plan for watch / fix / complete levels. */
   starterPlan?: Program;
   /** Predict-before-run question (Amulet of Foresight). */
@@ -73,8 +75,13 @@ export interface LevelDefinition {
 
 export interface LevelModule {
   definition: LevelDefinition;
-  /** Ground truth: the expected answer for any valid input. */
+  /** Ground truth: an expected answer for any valid input. */
   reference: (input: Inputs) => Value;
+  /**
+   * For problems with several correct answers (e.g. any pair that sums to the
+   * target): decides whether `actual` is acceptable. Defaults to equality with `reference`.
+   */
+  accepts?: (input: Inputs, actual: Value) => boolean;
   /** A plan that solves the level at target complexity and within par. */
   referencePlan: Program;
   /** Hidden edge cases (the Skirmisher wave). */

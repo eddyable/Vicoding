@@ -22,6 +22,6 @@ export function runCase(level: LevelModule, program: Program, input: Inputs, opt
     actual = result.outcome.kind === "error" ? undefined : result.finalArrays[output.name];
   }
 
-  const passed = actual !== undefined && valuesEqual(actual, expected);
+  const passed = actual !== undefined && (level.accepts ? level.accepts(input, actual) : valuesEqual(actual, expected));
   return { passed, expected, actual, result };
 }

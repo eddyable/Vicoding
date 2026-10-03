@@ -1,5 +1,6 @@
 import { countCards, staminaFor, type EngineFault, type Inputs, type Program, type Value } from "@vicoding/engine";
 import { runCase } from "./check.ts";
+import { fuzz } from "./jester.ts";
 import type { LevelModule } from "./types.ts";
 
 /** Size of the large "Horde" input in the prototype. */
@@ -56,6 +57,12 @@ export function charge(level: LevelModule, program: Program): ChargeReport {
   definition.examples.forEach((example, i) => add("vanguard", example.label ?? `Example ${i + 1}`, example.input));
   level.edgeCases.forEach((edge, i) => add("skirmishers", edge.label ?? `Edge case ${i + 1}`, edge.input));
   add("jester", "The Jester's attack", definition.jester.input);
+
+  // If every planned case passes, the Jester improvises: random small inputs, shrunk to the smallest trap.
+  if (cases.every((c) => c.passed)) {
+    const found = fuzz(level, program);
+    if (found) add("jester", "The Jester's improvised trap", found.input);
+  }
 
   const n = Math.min(HORDE_SIZE, definition.size.max);
   const budget = staminaFor(definition.targets.stamina, n);

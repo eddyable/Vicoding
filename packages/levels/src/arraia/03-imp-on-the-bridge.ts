@@ -55,6 +55,7 @@ export const impOnTheBridge: LevelModule = {
       parCards: 6,
       travelLight: true,
     },
+    codeVisibility: "victory",
     handMode: false,
     starterPlan: buggyPlan,
     warCouncil: {

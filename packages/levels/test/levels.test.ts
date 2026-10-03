@@ -181,7 +181,7 @@ describe("level-specific design promises", () => {
   });
 
   it("levels are in campaign order with unique ids", () => {
-    expect(levels.map((l) => l.definition.order)).toEqual([1, 2, 3]);
+    expect(levels.map((l) => l.definition.order)).toEqual([1, 2, 3, 4, 5]);
     expect(new Set(levels.map((l) => l.definition.id)).size).toBe(levels.length);
   });
 });
