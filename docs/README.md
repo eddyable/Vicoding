@@ -2,6 +2,7 @@
 
 | Doc | What's inside |
 |---|---|
+| [design/00-big-picture.md](design/00-big-picture.md) | **Start here.** One-screen overview of the player's journey: journey → realm → level → try loop, the daily loop, and how visual help fades |
 | [GAME_DESIGN.md](GAME_DESIGN.md) | Original high-level game design: vision, core loop, scaffolding fade, tech overview, MVP, monetization |
 | [design/01-world-and-characters.md](design/01-world-and-characters.md) | Lore of Algoria, playable races & Traits, classes (= languages), mentors, villains, factions, world map, Bestiary of Bugs, monster traits (pattern cues) |
 | [design/02-gear-and-progression.md](design/02-gear-and-progression.md) | Golden rule of gear, loadout slots, weapons (agents), containers (weight = space), spells, armor (testing/invariants), stats, ranks, economy, Grimoire |
