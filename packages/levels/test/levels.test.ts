@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   countCards,
   createBuilder,
+  replaceExpr,
   run,
   staminaFor,
   stmtExprs,
@@ -169,6 +170,16 @@ describe("level-specific design promises", () => {
     const report = charge(level, level.definition.starterPlan!);
     expect(report.firstFailure?.fault?.code).toBe("OUT_OF_BOUNDS");
     expect(report.stars).toBe(0);
+  });
+
+  it("Tallest Scroll: the hand-mode draft becomes the reference once its blank is filled", () => {
+    const level = getLevel("arraia-01-tallest-scroll")!;
+    const draft = level.definition.handDraft!;
+    const issues = validate(draft, validationContext(level));
+    expect(issues.map((i) => i.code)).toEqual(["HOLE"]);
+    const b = createBuilder("fill-");
+    const filled = replaceExpr(draft, issues[0]!.node, b.gt(b.at("scrolls", "i"), "best"));
+    expect(charge(level, filled).stars).toBe(3);
   });
 
   it("Mirror Twins: the foresight answer matches what actually happens", () => {

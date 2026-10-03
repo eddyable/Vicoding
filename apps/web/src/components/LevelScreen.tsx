@@ -11,12 +11,15 @@ import {
   type Program,
   type RunResult,
 } from "@vicoding/engine";
-import { charge, HARD_CAP_MULTIPLIER, type ChargeCase, type ChargeReport, type LevelModule } from "@vicoding/levels";
+import { charge, findDivergence, HARD_CAP_MULTIPLIER, type ChargeCase, type ChargeReport, type LevelModule } from "@vicoding/levels";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { buildFrame } from "../game/frame.ts";
+import { measureGrowth, type GrowthPoint } from "../game/growth.ts";
 import { formatValue } from "../game/narrate.ts";
 import { Board } from "./Board.tsx";
 import { ChargePanel } from "./ChargePanel.tsx";
+import { CodePanel } from "./CodePanel.tsx";
+import { HandMode } from "./HandMode.tsx";
 import { PlanEditor } from "./PlanEditor.tsx";
 import { ScoutCard } from "./ScoutCard.tsx";
 import { SPEEDS, Timeline } from "./Timeline.tsx";
@@ -74,6 +77,12 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
   const [report, setReport] = useState<ChargeReport | null>(null);
   const [showIssues, setShowIssues] = useState(false);
   const [foresight, setForesight] = useState<number | null>(null);
+  const [growth, setGrowth] = useState<GrowthPoint[] | null>(null);
+  /** Timeline position where the last replayed failure went wrong. */
+  const [divergenceAt, setDivergenceAt] = useState<number | null>(null);
+  /** Card picked by tapping a code line (highlighted when no run is shown). */
+  const [selectedCard, setSelectedCard] = useState<NodeId | undefined>(undefined);
+  const [handActive, setHandActive] = useState(() => def.handMode && !(savedPlan && savedPlan.body.length > 0));
 
   const context = useMemo(
     () => ({
@@ -101,16 +110,34 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
   const n = Object.values(runState?.input ?? activeInput).find(Array.isArray)?.length ?? 0;
   const budget = staminaFor(def.targets.stamina, n);
 
+  /** Moves the timeline to the step where the run went wrong, if it did. Returns true if it moved. */
+  const jumpToDivergence = useCallback(
+    (state: RunState): boolean => {
+      const at = findDivergence(level, state.input, state.result);
+      const beat = at === undefined ? -1 : state.beats.findIndex((b) => b.start <= at && at <= b.end);
+      if (beat < 0) return false;
+      setPlaying(false);
+      setPosition(beat + 1);
+      setDivergenceAt(beat + 1);
+      return true;
+    },
+    [level],
+  );
+
   const startRun = useCallback(
-    (input: Inputs) => {
+    (input: Inputs, options: { toDivergence?: boolean } = {}) => {
       const result = run(program, input, { maxEvents: MAX_ANIMATED_EVENTS, maxTicks: budget * HARD_CAP_MULTIPLIER + 1_000 });
       const owners = nodeOwners(program);
-      setRunState({ input, result, beats: buildBeats(result.events, owners), owners });
+      const state = { input, result, beats: buildBeats(result.events, owners), owners };
+      setRunState(state);
       setStale(false);
+      setDivergenceAt(null);
+      setSelectedCard(undefined);
+      if (options.toDivergence && jumpToDivergence(state)) return;
       setPosition(0);
       setPlaying(true);
     },
-    [program, budget],
+    [program, budget, jumpToDivergence],
   );
 
   const onRun = () => {
@@ -127,6 +154,7 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
       return;
     }
     const result = charge(level, program);
+    setGrowth(measureGrowth(level, program));
     setReport(result);
     if (result.stars > 0) onComplete(result.stars as 1 | 2 | 3);
   };
@@ -141,7 +169,20 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
       setExampleIndex(examples.length);
     }
     setReport(null);
-    startRun(failure.input);
+    startRun(failure.input, { toDivergence: true });
+  };
+
+  const selectCard = (node: NodeId) => {
+    setSelectedCard(node);
+    document.querySelector(`[data-card="${node}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  };
+
+  const finishHandMode = (useDraft: boolean) => {
+    setHandActive(false);
+    if (useDraft && def.handDraft && program.body.length === 0) {
+      changePlan(def.handDraft);
+      setShowIssues(true);
+    }
   };
 
   // Autoplay: advance one beat per tick of the chosen speed.
@@ -157,6 +198,7 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
 
   const atEnd = runState !== null && position >= length;
   const fault = atEnd ? runState.result.outcome.kind === "error" ? runState.result.outcome.fault : undefined : undefined;
+  const highlightedCard = runState && !stale ? frame.activeCard : selectedCard;
   const errorNodes = useMemo(
     () => new Set(fault && runState ? [fault.node, runState.owners.get(fault.node) ?? fault.node] : []),
     [fault, runState],
@@ -213,6 +255,10 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
             </section>
           )}
 
+          {handActive ? (
+            <HandMode level={level} input={activeInput} onDone={finishHandMode} />
+          ) : (
+            <>
           <Board frame={frame} inputs={def.inputs} />
           <Timeline
             position={position}
@@ -234,8 +280,22 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
           <p className="caption" aria-live="polite">
             {frame.caption}
           </p>
-          {atEnd && runState && <RunVerdict level={level} runState={runState} />}
+          {divergenceAt !== null && position === divergenceAt && (
+            <div className="divergence" role="status">
+              ⚡ <strong>Here the Jester's trap sprang:</strong> this step left the answer wrong. Step back ◀ to see how the plan got here.
+              {runState && def.output.kind === "array" && (
+                <div className="divergence-expected">
+                  It should end as <code>{formatValue(level.reference(runState.input))}</code>
+                </div>
+              )}
+            </div>
+          )}
+          {atEnd && runState && (
+            <RunVerdict level={level} runState={runState} onJump={() => jumpToDivergence(runState)} />
+          )}
           {runState?.result.truncated && <p className="note">This run is long, so only its first part is animated.</p>}
+            </>
+          )}
         </div>
 
         <div className="col-plan">
@@ -274,11 +334,14 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
             onChange={changePlan}
             level={def}
             readOnly={readOnly}
-            activeCard={runState && !stale ? frame.activeCard : undefined}
+            activeCard={highlightedCard}
             errorNodes={errorNodes}
             issueNodes={issueNodes}
           />
           {readOnly && <p className="note">This plan is fixed: watch it, predict it, then Charge to complete the level.</p>}
+          {def.codeVisibility === "live" && (
+            <CodePanel program={program} level={def} activeCard={highlightedCard} onSelectCard={selectCard} title="Your plan, live as code" />
+          )}
         </div>
       </div>
 
@@ -286,6 +349,8 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
         <ChargePanel
           report={report}
           level={def}
+          program={program}
+          growth={growth}
           hasNext={hasNext}
           onReplay={onReplay}
           onNext={onNext}
@@ -296,7 +361,7 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
   );
 }
 
-function RunVerdict({ level, runState }: { level: LevelModule; runState: RunState }) {
+function RunVerdict({ level, runState, onJump }: { level: LevelModule; runState: RunState; onJump: () => void }) {
   const { outcome } = runState.result;
   const expected = level.reference(runState.input);
   const output = level.definition.output;
@@ -307,11 +372,17 @@ function RunVerdict({ level, runState }: { level: LevelModule; runState: RunStat
   if (actual === undefined) {
     return <div className="verdict fail">✘ The plan ended without a Victory card. Expected {formatValue(expected)}.</div>;
   }
-  return valuesEqual(actual, expected) ? (
+  const passed = level.accepts ? level.accepts(runState.input, actual) : valuesEqual(actual, expected);
+  return passed ? (
     <div className="verdict pass">✔ Correct for this example: {formatValue(actual)}. Press Charge! to face the hidden waves.</div>
   ) : (
     <div className="verdict fail">
-      ✘ Expected {formatValue(expected)}, but got {formatValue(actual)}.
+      ✘ Expected {formatValue(expected)}, but got {formatValue(actual)}.{" "}
+      {output.kind === "array" && (
+        <button type="button" className="link" onClick={onJump}>
+          ⚡ Show me where it went wrong
+        </button>
+      )}
     </div>
   );
 }

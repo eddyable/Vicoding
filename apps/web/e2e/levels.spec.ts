@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { createBuilder, type Program } from "@vicoding/engine";
+import { getLevel } from "@vicoding/levels";
 
 const ROOT_END = '[data-container="root"] > button.slot-active';
 const LOOP_END = '[data-container$=":body"] > button.slot-active';
@@ -22,12 +24,20 @@ async function runToEnd(page: Page) {
   await page.getByRole("button", { name: "Jump to end" }).click();
 }
 
-async function unlock(page: Page, completed: string[]) {
-  await page.addInitScript((ids) => {
-    const progress = Object.fromEntries(ids.map((id) => [id, { stars: 3, completed: true }]));
-    localStorage.setItem("vicoding:v0:progress", JSON.stringify(progress));
-  }, completed);
+/** Marks levels as completed, optionally with a saved plan for the level being opened. */
+async function unlock(page: Page, completed: string[], plans: Record<string, Program> = {}) {
+  await page.addInitScript(
+    ({ ids, saved }) => {
+      const progress: Record<string, unknown> = Object.fromEntries(ids.map((id) => [id, { stars: 3, completed: true }]));
+      for (const [id, plan] of Object.entries(saved)) progress[id] = { stars: 0, completed: false, plan };
+      localStorage.setItem("vicoding:v0:progress", JSON.stringify(progress));
+    },
+    { ids: completed, saved: plans },
+  );
 }
+
+const ALL_BEFORE = (order: number) =>
+  ["arraia-01-tallest-scroll", "arraia-02-mirror-twins", "arraia-03-imp-on-the-bridge", "arraia-04-bridge-of-planks"].slice(0, order - 1);
 
 async function expectNoHorizontalScroll(page: Page) {
   // Compare with the device width: mobile browsers widen the layout viewport
@@ -48,6 +58,7 @@ test("the map starts with only the first level unlocked", async ({ page }) => {
 test("level 1: build the plan by tapping cards, run it, and charge for three stars", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /The Tallest Scroll/ }).click();
+  await page.getByRole("button", { name: "Skip and build the plan myself" }).click();
 
   // ⚑ best = scrolls[0]
   await placeCard(page, "Raise banner", ROOT_END);
@@ -88,6 +99,7 @@ test("level 1: build the plan by tapping cards, run it, and charge for three sta
 test("level 1: an unfinished plan is flagged instead of run", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /The Tallest Scroll/ }).click();
+  await page.getByRole("button", { name: "Skip and build the plan myself" }).click();
   await placeCard(page, "Victory", ROOT_END);
   await page.getByRole("button", { name: "▶ Run" }).click();
   await expect(page.getByRole("alert")).toContainText("This slot is still empty");
@@ -143,4 +155,104 @@ test("level 3: meet the Off-by-One Imp, fix the plan, and charge", async ({ page
   await expect(results).toContainText("Victory!");
   await results.getByRole("button", { name: "6" }).click();
   await expect(results.locator(".explanation")).toBeVisible();
+});
+
+test("level 1: solve it by hand, turn the moves into a plan, and read the Spell Scroll", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /The Tallest Scroll/ }).click();
+
+  // Example 1 is [3, 7, 2, 9, 4]: raise the banner on 3, 7 and 9.
+  await page.getByRole("button", { name: "Place the soldier on the first scroll" }).click();
+  const raise = page.getByRole("button", { name: "⚑ Raise the banner here" });
+  const step = page.getByRole("button", { name: "Step ➜" });
+  await raise.click();
+  await step.click();
+  await raise.click();
+  await step.click();
+  await step.click();
+  await raise.click();
+  await step.click();
+  await page.getByRole("button", { name: "Report: the tallest is 9" }).click();
+  await expect(page.getByText("Exactly! You did it by hand.")).toBeVisible();
+  await page.getByRole("button", { name: "Write down my moves as a plan" }).click();
+
+  // The draft has one blank: the rule for when to raise the banner.
+  await expect(page.getByRole("alert")).toContainText("This slot is still empty");
+  await fillNextSlot(page, "▢ > ▢");
+  await fillNextSlot(page, "scrolls[i]");
+  await fillNextSlot(page, "best");
+
+  await page.getByRole("button", { name: "⚔ Charge!" }).click();
+  const results = page.getByRole("dialog", { name: "Charge results" });
+  await expect(results.getByLabel("3 of 3 stars")).toBeVisible();
+  await expect(results.locator(".code")).toContainText("def tallest_scroll(scrolls):");
+  await expect(results.locator(".code")).toContainText("if scrolls[i] > best:");
+  await results.getByRole("tab", { name: "JavaScript" }).click();
+  await expect(results.locator(".code")).toContainText("function tallestScroll(scrolls) {");
+  await expect(results.locator(".growth-verdict")).toContainText("straight line");
+});
+
+test("level 1: Grukk's nested loops win one star and summon the Ogre", async ({ page }) => {
+  const b = createBuilder("e2e-");
+  const bruteForce = b.program(
+    b.forEach(
+      "i",
+      "scrolls",
+      b.set("tallest", b.bool(true)),
+      b.forEach("j", "scrolls", b.iff([b.when(b.gt(b.at("scrolls", "j"), b.at("scrolls", "i")), b.set("tallest", b.bool(false)))])),
+      b.iff([b.when(b.eq("tallest", b.bool(true)), b.ret(b.at("scrolls", "i")))]),
+    ),
+  );
+  await unlock(page, [], { "arraia-01-tallest-scroll": bruteForce });
+  await page.goto("/");
+  await page.getByRole("button", { name: /The Tallest Scroll/ }).click();
+  await page.getByRole("button", { name: "⚔ Charge!" }).click();
+
+  const results = page.getByRole("dialog", { name: "Charge results" });
+  await expect(results.getByLabel("1 of 3 stars")).toBeVisible();
+  await expect(results.locator(".ogre")).toBeVisible();
+  await expect(results.locator(".growth-verdict")).toContainText(/faster|explodes/);
+});
+
+test("level 4: the converging builders win three stars and the code matches the walkthrough", async ({ page }) => {
+  const level = getLevel("arraia-04-bridge-of-planks")!;
+  await unlock(page, ALL_BEFORE(4), { [level.definition.id]: level.referencePlan });
+  await page.goto("/");
+  await page.getByRole("button", { name: /The Bridge of Planks/ }).click();
+  await expect(page.locator(".banner-given")).toContainText("target = 14");
+
+  await runToEnd(page);
+  await expect(page.locator(".verdict")).toContainText("Correct for this example: [1, 5]");
+
+  await page.getByRole("button", { name: "⚔ Charge!" }).click();
+  const results = page.getByRole("dialog", { name: "Charge results" });
+  await expect(results.getByLabel("3 of 3 stars")).toBeVisible();
+  await expect(results.locator(".code")).toContainText("elif planks[L] + planks[R] < target:");
+});
+
+test("level 5: a buggy writer is caught, and the board rewinds to the step that went wrong", async ({ page }) => {
+  const b = createBuilder("e2e5-");
+  // Bug: W steps forward on every tile, not only after placing a cart.
+  const writerAlwaysMoves = b.program(
+    b.place("W", "road", 0),
+    b.forEach("R", "road", b.iff([b.when(b.ne(b.at("road", "R"), 0), b.swap("road", "W", "R"))]), b.advance("W")),
+  );
+  await unlock(page, ALL_BEFORE(5), { "arraia-05-clearing-the-road": writerAlwaysMoves });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Clearing the Road/ }).click();
+
+  // The code is shown live on this level, and tapping a line highlights its card.
+  const code = page.getByRole("region", { name: "Your plan, live as code" });
+  await expect(code).toContainText("def clearing_the_road(road):");
+  await code.getByRole("button", { name: /W \+= 1/ }).click();
+  await expect(page.locator(".card-active")).toContainText("Advance");
+
+  await page.getByRole("button", { name: "⚔ Charge!" }).click();
+  const results = page.getByRole("dialog", { name: "Charge results" });
+  await expect(results).toContainText("The waves broke through");
+  await results.getByRole("button", { name: "⚡ Show me where it goes wrong" }).click();
+
+  await expect(page.locator(".divergence")).toContainText("Here the Jester's trap sprang");
+  await expect(page.locator(".card-active")).toContainText("Swap tiles");
+  await expectNoHorizontalScroll(page);
 });

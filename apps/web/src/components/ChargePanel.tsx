@@ -1,6 +1,10 @@
+import type { Program } from "@vicoding/engine";
 import type { ChargeCase, ChargeReport, LevelDefinition } from "@vicoding/levels";
 import { useState } from "react";
+import type { GrowthPoint } from "../game/growth.ts";
 import { formatValue } from "../game/narrate.ts";
+import { CodePanel } from "./CodePanel.tsx";
+import { GrowthChart } from "./GrowthChart.tsx";
 import { describeInput } from "./ScoutCard.tsx";
 
 const WAVE_NAMES: Record<ChargeCase["wave"], string> = {
@@ -12,16 +16,37 @@ const WAVE_NAMES: Record<ChargeCase["wave"], string> = {
 interface ChargePanelProps {
   report: ChargeReport;
   level: LevelDefinition;
+  program: Program;
+  growth: GrowthPoint[] | null;
   hasNext: boolean;
   onReplay: (failure: ChargeCase) => void;
   onNext: () => void;
   onClose: () => void;
 }
 
-export function ChargePanel({ report, level, hasNext, onReplay, onNext, onClose }: ChargePanelProps) {
+export function ChargePanel({ report, level, program, growth, hasNext, onReplay, onNext, onClose }: ChargePanelProps) {
   const [answer, setAnswer] = useState<number | null>(null);
   const { horde, stars } = report;
-  const waves = (["vanguard", "skirmishers", "jester"] as const).map((wave) => ({ wave, cases: report.cases.filter((c) => c.wave === wave) }));
+  const waveCases = (wave: ChargeCase["wave"]) => ({ wave, cases: report.cases.filter((c) => c.wave === wave) });
+  const before = [waveCases("vanguard"), waveCases("skirmishers")];
+  const after = [waveCases("jester")];
+  const renderWave = ({ wave, cases }: { wave: ChargeCase["wave"]; cases: ChargeCase[] }) => (
+    <div key={wave} className="wave">
+      <div className="wave-name">{WAVE_NAMES[wave]}</div>
+      {cases.map((c) => (
+        <div key={c.label} className={`wave-case ${c.passed ? "pass" : "fail"}`}>
+          <span>{c.passed ? "✔" : "✘"}</span>
+          <span className="case-label">{c.label}</span>
+          {!c.passed && (
+            <span className="case-detail">
+              <code>{describeInput(c.input)}</code>
+              {c.fault ? ` · ${c.fault.message}` : ` · expected ${formatValue(c.expected)}, got ${formatValue(c.actual)}`}
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
   const ogre = horde.overwhelmed ? 20 : horde.ticks / horde.budget;
   const council = level.warCouncil;
 
@@ -50,23 +75,7 @@ export function ChargePanel({ report, level, hasNext, onReplay, onNext, onClose 
           </li>
         </ul>
 
-        {waves.map(({ wave, cases }) => (
-          <div key={wave} className="wave">
-            <div className="wave-name">{WAVE_NAMES[wave]}</div>
-            {cases.map((c) => (
-              <div key={c.label} className={`wave-case ${c.passed ? "pass" : "fail"}`}>
-                <span>{c.passed ? "✔" : "✘"}</span>
-                <span className="case-label">{c.label}</span>
-                {!c.passed && (
-                  <span className="case-detail">
-                    <code>{describeInput(c.input)}</code>
-                    {c.fault ? ` · ${c.fault.message}` : ` · expected ${formatValue(c.expected)}, got ${formatValue(c.actual)}`}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        ))}
+        {before.map(renderWave)}
 
         <div className="wave">
           <div className="wave-name">Wave 3 · The Horde ({horde.n.toLocaleString("en-US")} tiles)</div>
@@ -85,10 +94,21 @@ export function ChargePanel({ report, level, hasNext, onReplay, onNext, onClose 
           )}
         </div>
 
+        {after.map(renderWave)}
+
+        {growth && <GrowthChart points={growth} />}
+
         {report.firstFailure && (
           <button type="button" className="primary" onClick={() => onReplay(report.firstFailure!)}>
-            Replay the failing case on the board
+            ⚡ Show me where it goes wrong
           </button>
+        )}
+
+        {stars > 0 && (
+          <div className="scroll-reveal">
+            <div className="wave-name">📜 Your Spell Scroll: this is what you just wrote</div>
+            <CodePanel program={program} level={level} activeCard={undefined} title="Your plan as code" />
+          </div>
         )}
 
         {stars > 0 && (

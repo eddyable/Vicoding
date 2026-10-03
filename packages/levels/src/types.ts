@@ -62,6 +62,11 @@ export interface LevelDefinition {
   };
   /** Level 1 starts with the player moving the pointer by hand. */
   handMode: boolean;
+  /**
+   * The plan offered after solving by hand: the player's moves, generalised,
+   * with the one rule they must state themselves left as an empty slot.
+   */
+  handDraft?: Program;
   /** When the player sees their plan as code: after winning, or live while building. */
   codeVisibility: "victory" | "live";
   /** Pre-built plan for watch / fix / complete levels. */

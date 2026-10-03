@@ -11,6 +11,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@vicoding/codegen": "workspace:*",
     "@vicoding/engine": "workspace:*",
     "@vicoding/levels": "workspace:*",
     "react": "^19.3.0",

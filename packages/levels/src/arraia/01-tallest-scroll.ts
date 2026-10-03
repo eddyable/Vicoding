@@ -11,6 +11,14 @@ const referencePlan = b.program(
   b.ret("best"),
 );
 
+/** The draft from Hand Mode: the walk is written down, the "when to raise the banner" rule is left blank. */
+const draft = createBuilder("l1-draft-");
+const handDraft = draft.program(
+  draft.set("best", draft.at("scrolls", 0)),
+  draft.forEach("i", "scrolls", draft.iff([draft.when(draft.hole(), draft.set("best", draft.at("scrolls", "i")))])),
+  draft.ret("best"),
+);
+
 const scrolls = (input: Inputs) => input.scrolls as number[];
 
 export const tallestScroll: LevelModule = {
@@ -51,6 +59,7 @@ export const tallestScroll: LevelModule = {
     },
     codeVisibility: "victory",
     handMode: true,
+    handDraft,
     warCouncil: {
       question: "The shelf doubles in length. Roughly how much longer does your sweep take?",
       options: ["The same time", "About twice as long", "About four times as long", "It depends on the tallest scroll's position"],

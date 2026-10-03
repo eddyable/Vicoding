@@ -9,8 +9,9 @@ A game where you learn coding-interview patterns by building algorithms visually
 
 ```
 packages/
-  engine/   Battle Plan language, interpreter, event log (Battle Chronicle), replay, validation
-  levels/   Level definitions, reference solutions, test-case generators
+  engine/   Battle Plan language, interpreter, event log (Battle Chronicle), replay, validation, editing
+  levels/   The five Arraia levels, reference solutions, Charge scoring, the Jester's fuzzing
+  codegen/  Battle Plan → readable Python and JavaScript, line-linked to cards
 apps/
   web/      Vite + React web app: level map, board, timeline, card editor, charge results
 docs/       Game design, PRD, architecture decisions

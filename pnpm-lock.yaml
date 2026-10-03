@@ -17,6 +17,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@vicoding/codegen':
+        specifier: workspace:*
+        version: link:../../packages/codegen
       '@vicoding/engine':
         specifier: workspace:*
         version: link:../../packages/engine

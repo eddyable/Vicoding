@@ -2,8 +2,6 @@ import { levels } from "@vicoding/levels";
 import { isUnlocked, type Progress } from "../game/progress.ts";
 
 const ORDER = levels.map((l) => l.definition.id);
-/** Levels from the PRD that are not built yet, shown so the realm feels complete. */
-const COMING_SOON = ["The Bridge of Planks", "Clearing the Road"];
 
 export function LevelMap({ progress, onOpen }: { progress: Progress; onOpen: (id: string) => void }) {
   return (
@@ -41,15 +39,6 @@ export function LevelMap({ progress, onOpen }: { progress: Progress; onOpen: (id
               </li>
             );
           })}
-          {COMING_SOON.map((title, i) => (
-            <li key={title}>
-              <div className="node locked soon">
-                <span className="node-number">{levels.length + i + 1}</span>
-                <span className="node-title">{title}</span>
-                <span className="node-source">Coming soon</span>
-              </div>
-            </li>
-          ))}
         </ol>
       </section>
     </div>
