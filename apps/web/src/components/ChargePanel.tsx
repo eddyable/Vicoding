@@ -2,6 +2,7 @@ import type { Program } from "@vicoding/engine";
 import type { ChargeCase, ChargeReport, LevelDefinition } from "@vicoding/levels";
 import { useState } from "react";
 import type { GrowthPoint } from "../game/growth.ts";
+import { track } from "../game/analytics.ts";
 import { formatValue } from "../game/narrate.ts";
 import { CodePanel } from "./CodePanel.tsx";
 import { GrowthChart } from "./GrowthChart.tsx";
@@ -18,13 +19,13 @@ interface ChargePanelProps {
   level: LevelDefinition;
   program: Program;
   growth: GrowthPoint[] | null;
-  hasNext: boolean;
+  nextLabel: string;
   onReplay: (failure: ChargeCase) => void;
   onNext: () => void;
   onClose: () => void;
 }
 
-export function ChargePanel({ report, level, program, growth, hasNext, onReplay, onNext, onClose }: ChargePanelProps) {
+export function ChargePanel({ report, level, program, growth, nextLabel, onReplay, onNext, onClose }: ChargePanelProps) {
   const [answer, setAnswer] = useState<number | null>(null);
   const { horde, stars } = report;
   const waveCases = (wave: ChargeCase["wave"]) => ({ wave, cases: report.cases.filter((c) => c.wave === wave) });
@@ -121,7 +122,11 @@ export function ChargePanel({ report, level, program, growth, hasNext, onReplay,
                   key={option}
                   type="button"
                   className={`option ${answer === null ? "" : i === council.answer ? "correct" : i === answer ? "wrong" : ""}`}
-                  onClick={() => answer === null && setAnswer(i)}
+                  onClick={() => {
+                    if (answer !== null) return;
+                    setAnswer(i);
+                    track("war_council_answer", { level: level.id, correct: i === council.answer });
+                  }}
                   disabled={answer !== null && i !== answer && i !== council.answer}
                 >
                   {option}
@@ -134,7 +139,7 @@ export function ChargePanel({ report, level, program, growth, hasNext, onReplay,
                 Keep improving
               </button>
               <button type="button" className="primary" onClick={onNext}>
-                {hasNext ? "Next level →" : "Back to the map"}
+                {nextLabel}
               </button>
             </div>
           </div>

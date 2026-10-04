@@ -1,5 +1,6 @@
 import {
   buildBeats,
+  countCards,
   nodeOwners,
   run,
   staminaFor,
@@ -12,8 +13,10 @@ import {
   type RunResult,
 } from "@vicoding/engine";
 import { charge, findDivergence, HARD_CAP_MULTIPLIER, type ChargeCase, type ChargeReport, type LevelModule } from "@vicoding/levels";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { track } from "../game/analytics.ts";
 import { buildFrame } from "../game/frame.ts";
+import { hapticError, hapticSuccess } from "../game/native.ts";
 import { measureGrowth, type GrowthPoint } from "../game/growth.ts";
 import { formatValue } from "../game/narrate.ts";
 import { Board } from "./Board.tsx";
@@ -53,14 +56,15 @@ interface LevelScreenProps {
   level: LevelModule;
   savedPlan: Program | undefined;
   stars: number;
-  hasNext: boolean;
+  /** Label of the button that continues after a victory. */
+  nextLabel: string;
   onPlanChange: (plan: Program) => void;
   onComplete: (stars: 1 | 2 | 3) => void;
   onNext: () => void;
   onExit: () => void;
 }
 
-export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, onComplete, onNext, onExit }: LevelScreenProps) {
+export function LevelScreen({ level, savedPlan, stars, nextLabel, onPlanChange, onComplete, onNext, onExit }: LevelScreenProps) {
   const def = level.definition;
   const readOnly = def.step === "watch";
   const starter = def.starterPlan ?? { body: [] };
@@ -145,6 +149,8 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
       setShowIssues(true);
       return;
     }
+    runCount.current += 1;
+    track("plan_run", { level: def.id, cards: countCards(program), example: exampleIndex });
     startRun(activeInput);
   };
 
@@ -156,7 +162,24 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
     const result = charge(level, program);
     setGrowth(measureGrowth(level, program));
     setReport(result);
-    if (result.stars > 0) onComplete(result.stars as 1 | 2 | 3);
+    track("charge", {
+      level: def.id,
+      stars: result.stars,
+      cards: result.cards,
+      failed_wave: result.firstFailure?.wave ?? null,
+      failed_case: result.firstFailure?.label ?? null,
+      horde_ticks: result.horde.ticks,
+      horde_budget: result.horde.budget,
+      runs_before: runCount.current,
+    });
+    if (!result.horde.withinBudget) track("ogre_shown", { level: def.id, overwhelmed: result.horde.overwhelmed });
+    if (result.stars > 0) {
+      track("level_complete", { level: def.id, stars: result.stars, runs: runCount.current });
+      hapticSuccess();
+      onComplete(result.stars as 1 | 2 | 3);
+    } else {
+      hapticError();
+    }
   };
 
   const onReplay = (failure: ChargeCase) => {
@@ -169,6 +192,7 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
       setExampleIndex(examples.length);
     }
     setReport(null);
+    track("counterexample_shown", { level: def.id, wave: failure.wave, label: failure.label });
     startRun(failure.input, { toDivergence: true });
   };
 
@@ -178,12 +202,18 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
   };
 
   const finishHandMode = (useDraft: boolean) => {
+    track("hand_mode_done", { level: def.id, used_draft: useDraft });
     setHandActive(false);
     if (useDraft && def.handDraft && program.body.length === 0) {
       changePlan(def.handDraft);
       setShowIssues(true);
     }
   };
+
+  const runCount = useRef(0);
+  useEffect(() => {
+    track("level_start", { level: def.id, step: def.step });
+  }, [def.id, def.step]);
 
   // Autoplay: advance one beat per tick of the chosen speed.
   useEffect(() => {
@@ -245,7 +275,11 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
                     key={option}
                     type="button"
                     className={`option ${foresight === null ? "" : i === def.foresight!.answer ? "correct" : i === foresight ? "wrong" : ""}`}
-                    onClick={() => foresight === null && setForesight(i)}
+                    onClick={() => {
+                      if (foresight !== null) return;
+                      setForesight(i);
+                      track("foresight_answer", { level: def.id, correct: i === def.foresight!.answer });
+                    }}
                   >
                     {option}
                   </button>
@@ -268,6 +302,7 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
             ticks={frame.state.tick}
             budget={budget}
             onSeek={(p) => {
+              if (p < position) track("step_back_used", { level: def.id });
               setPlaying(false);
               setPosition(Math.max(0, Math.min(length, p)));
             }}
@@ -351,7 +386,7 @@ export function LevelScreen({ level, savedPlan, stars, hasNext, onPlanChange, on
           level={def}
           program={program}
           growth={growth}
-          hasNext={hasNext}
+          nextLabel={nextLabel}
           onReplay={onReplay}
           onNext={onNext}
           onClose={() => setReport(null)}

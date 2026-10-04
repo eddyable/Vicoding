@@ -1436,3 +1436,211 @@ button.code-line:hover {
   font-size: 0.85rem;
   color: var(--muted);
 }
+
+/* ── week 4: transfer test, survey, consent ──────────────────────────── */
+
+.trial {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0.5rem 1rem 4rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.trial > * {
+  min-width: 0;
+}
+
+.trial-clock {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.trial-brief h2 {
+  margin: 0.5rem 0 0.25rem;
+}
+
+.trial-example,
+.trial-failure pre,
+.trial-stdout {
+  margin: 0.35rem 0;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-2);
+  border-radius: 8px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.trial-editor {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.code-editor {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 220px;
+  background: var(--surface);
+}
+
+.code-editor .cm-editor {
+  min-height: 220px;
+  font-size: 15px;
+}
+
+.code-editor .cm-editor.cm-focused {
+  outline: 3px solid var(--agent);
+}
+
+@media (prefers-color-scheme: dark) {
+  .code-editor .cm-editor {
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  .code-editor .cm-gutters {
+    background: var(--surface-2);
+    color: var(--muted);
+    border-right-color: var(--border);
+  }
+
+  .code-editor .cm-activeLine,
+  .code-editor .cm-activeLineGutter {
+    background: rgb(255 255 255 / 0.04);
+  }
+
+  .code-editor .cm-cursor {
+    border-left-color: var(--text);
+  }
+}
+
+.trial-results,
+.trial-help,
+.trial-solution {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.trial-solution .code {
+  padding: 0.75rem;
+  white-space: pre;
+}
+
+.follow-up {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.follow-up code {
+  background: var(--surface-2);
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  word-break: break-all;
+}
+
+.survey fieldset {
+  border: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+
+.survey legend {
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.scale,
+.choice-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.scale-end {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.scale label,
+.choice-list label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.scale label.selected,
+.choice-list label.selected {
+  border-color: var(--agent);
+  background: var(--agent-soft);
+  font-weight: 600;
+}
+
+.scale input,
+.choice-list input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scale label:focus-within,
+.choice-list label:focus-within {
+  outline: 3px solid var(--agent);
+  outline-offset: 2px;
+}
+
+.text-field {
+  display: grid;
+  gap: 0.3rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.text-field textarea,
+.text-field input {
+  font-weight: 400;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem;
+  background: var(--surface);
+  min-height: 44px;
+}
+
+.consent {
+  position: fixed;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  max-width: 640px;
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  padding: 0.85rem 1rem;
+  z-index: 20;
+}
+
+.consent p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.trial-node .node-number {
+  background: var(--amber-soft);
+  color: var(--amber);
+}

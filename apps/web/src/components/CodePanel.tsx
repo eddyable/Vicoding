@@ -2,6 +2,7 @@ import { functionName, generate, type Language } from "@vicoding/codegen";
 import type { NodeId, Program } from "@vicoding/engine";
 import type { LevelDefinition } from "@vicoding/levels";
 import { useMemo, useState } from "react";
+import { track } from "../game/analytics.ts";
 
 const LANGUAGES: { id: Language; label: string }[] = [
   { id: "python", label: "Python" },
@@ -65,7 +66,11 @@ export function CodePanel({ program, level, activeCard, onSelectCard, title = "Y
           const active = line.node !== undefined && line.node === activeCard;
           const content = "    ".repeat(line.indent) + line.text;
           return line.node !== undefined && onSelectCard ? (
-            <button key={i} type="button" className={`code-line ${active ? "active" : ""}`} onClick={() => onSelectCard(line.node!)}>
+            <button key={i} type="button" className={`code-line ${active ? "active" : ""}`} onClick={() => {
+                track("code_reveal_line_tapped", { level: level.id, language });
+                onSelectCard(line.node!);
+              }}
+            >
               <span className="line-number">{i + 1}</span>
               {content}
             </button>

@@ -2,6 +2,11 @@ import { expect, test, type Page } from "@playwright/test";
 import { createBuilder, type Program } from "@vicoding/engine";
 import { getLevel } from "@vicoding/levels";
 
+// Answer the consent prompt up front so the banner never covers the game in tests.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("vicoding:v0:analytics-consent", "granted"));
+});
+
 const ROOT_END = '[data-container="root"] > button.slot-active';
 const LOOP_END = '[data-container$=":body"] > button.slot-active';
 const IF_END = '[data-container$=":branch:0"] > button.slot-active';
@@ -255,4 +260,15 @@ test("level 5: a buggy writer is caught, and the board rewinds to the step that 
   await expect(page.locator(".divergence")).toContainText("Here the Jester's trap sprang");
   await expect(page.locator(".card-active")).toContainText("Swap tiles");
   await expectNoHorizontalScroll(page);
+});
+
+test("first visit asks for consent, and the answer is remembered", async ({ page, context }) => {
+  await context.clearCookies();
+  await page.addInitScript(() => localStorage.removeItem("vicoding:v0:analytics-consent"));
+  await page.goto("/");
+  const banner = page.getByRole("dialog", { name: "Usage data" });
+  await expect(banner).toBeVisible();
+  await banner.getByRole("button", { name: "No thanks" }).click();
+  await expect(banner).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem("vicoding:v0:analytics-consent"))).toBe("denied");
 });

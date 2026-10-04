@@ -10,6 +10,7 @@ export * from "./check.ts";
 export * from "./charge.ts";
 export * from "./jester.ts";
 export * from "./random.ts";
+export * from "./trials/valid-palindrome.ts";
 
 /** All playable levels, in campaign order. */
 export const levels: readonly LevelModule[] = [tallestScroll, mirrorTwins, impOnTheBridge, bridgeOfPlanks, clearingTheRoad];

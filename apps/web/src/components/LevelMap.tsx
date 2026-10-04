@@ -3,7 +3,16 @@ import { isUnlocked, type Progress } from "../game/progress.ts";
 
 const ORDER = levels.map((l) => l.definition.id);
 
-export function LevelMap({ progress, onOpen }: { progress: Progress; onOpen: (id: string) => void }) {
+interface LevelMapProps {
+  progress: Progress;
+  onOpen: (id: string) => void;
+  /** The plain-code trial opens after the last level. */
+  trialUnlocked: boolean;
+  trialDone: boolean;
+  onOpenTrial: () => void;
+}
+
+export function LevelMap({ progress, onOpen, trialUnlocked, trialDone, onOpenTrial }: LevelMapProps) {
   return (
     <div className="map">
       <header className="map-header">
@@ -39,6 +48,13 @@ export function LevelMap({ progress, onOpen }: { progress: Progress; onOpen: (id
               </li>
             );
           })}
+          <li>
+            <button type="button" className={`node trial-node ${trialUnlocked ? "" : "locked"} ${trialDone ? "done" : ""}`} onClick={onOpenTrial} disabled={!trialUnlocked}>
+              <span className="node-number">{trialUnlocked ? "⚔" : "🔒"}</span>
+              <span className="node-title">The Final Trial</span>
+              <span className="node-source">Plain Python, no cards: like a real interview</span>
+            </button>
+          </li>
         </ol>
       </section>
     </div>
