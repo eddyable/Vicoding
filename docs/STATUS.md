@@ -23,8 +23,8 @@ What's **not** done:
 The goal of v0 is a **go / adjust / stop decision** from a playtest (PRD §4 hypotheses). Everything below serves that, in this order.
 
 ### 1. Put it in front of testers
-- [ ] **CI:** a GitHub Actions workflow running `pnpm typecheck`, `pnpm test` and the e2e suite on every push. Claude can do this.
-- [ ] **Deploy the web build** to a static host (Netlify, Cloudflare Pages, or GitHub Pages via Actions). Claude can write the workflow; the user connects the host.
+- [x] **CI:** a GitHub Actions workflow (`.github/workflows/ci.yml`) running `pnpm typecheck`, `pnpm test` and the e2e suite on every push and PR.
+- [x] **Deploy the web build** to GitHub Pages (`.github/workflows/deploy.yml`, builds on push to `main`). The user still needs to flip Settings → Pages → Source to "GitHub Actions" once, the first time it runs.
 - [ ] **Analytics collector:** a tiny endpoint that stores the JSON batches the app sends (`VITE_ANALYTICS_URL`), e.g. a serverless function. Alternatively, use only the device export in moderated sessions. Claude can write it; the user deploys it.
 - [ ] **Native test builds** on the user's Mac and in Android Studio, following [mobile.md](mobile.md). Optional: the web link already works on phones.
 - [ ] Walk through the pre-launch checklist in [playtest.md](playtest.md) §5.
@@ -42,5 +42,5 @@ The goal of v0 is a **go / adjust / stop decision** from a playtest (PRD §4 hyp
 
 ## Open questions for the user
 1. Tester recruiting channel and incentive (PRD §14).
-2. Hosting choice for the web build and the analytics collector.
+2. Hosting choice for the analytics collector (the web build now deploys to GitHub Pages).
 3. Whether native builds are wanted for the first playtest, or the web link is enough.

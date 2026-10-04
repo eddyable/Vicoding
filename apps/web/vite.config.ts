@@ -47,6 +47,8 @@ function pyodideAssets(): Plugin {
 }
 
 export default defineConfig({
+  // Set by the GitHub Pages deploy workflow so assets resolve under /<repo>/; "/" for local dev and previews.
+  base: process.env.VITE_BASE ?? "/",
   plugins: [
     react(),
     pyodideAssets(),
