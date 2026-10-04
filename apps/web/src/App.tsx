@@ -5,6 +5,7 @@ import { ConsentBanner } from "./components/ConsentBanner.tsx";
 import { ExportPage } from "./components/ExportPage.tsx";
 import { LevelMap } from "./components/LevelMap.tsx";
 import { LevelScreen } from "./components/LevelScreen.tsx";
+import { PracticeScreen } from "./components/PracticeScreen.tsx";
 import { setPlatform, track } from "./game/analytics.ts";
 import { nativePlatform, onFollowUpTapped } from "./game/native.ts";
 import { isUnlocked, loadProgress, saveProgress, type Progress } from "./game/progress.ts";
@@ -17,6 +18,7 @@ const TRIAL_ID = validPalindrome.id;
 type Screen =
   | { kind: "map" }
   | { kind: "level"; id: string }
+  | { kind: "practice" }
   | { kind: "trial"; mode: TrialMode }
   | { kind: "survey"; passed: boolean }
   | { kind: "export" };
@@ -25,6 +27,7 @@ type Screen =
 function initialScreen(): Screen {
   const params = new URLSearchParams(window.location.search);
   if (params.get("export") === "1") return { kind: "export" };
+  if (params.get("practice") === "1") return { kind: "practice" };
   if (params.get("trial") === "followup") return { kind: "trial", mode: "followup" };
   return { kind: "map" };
 }
@@ -73,6 +76,8 @@ export function App() {
         }}
       />
     );
+  } else if (screen.kind === "practice") {
+    content = <PracticeScreen onExit={toMap} />;
   } else if (screen.kind === "survey") {
     content = <Survey trialPassed={screen.passed} onDone={toMap} />;
   } else if (screen.kind === "level") {
@@ -102,6 +107,7 @@ export function App() {
         trialDone={progress[TRIAL_ID]?.completed === true}
         onOpen={(id) => isUnlocked(progress, ORDER, id) && setScreen({ kind: "level", id })}
         onOpenTrial={() => setScreen({ kind: "trial", mode: "first" })}
+        onPractice={() => setScreen({ kind: "practice" })}
       />
     );
   }

@@ -24,7 +24,10 @@ export type EventName =
   | "transfer_test_start"
   | "transfer_test_submit"
   | "transfer_test_solution_shown"
-  | "survey_submit";
+  | "survey_submit"
+  | "practice_start"
+  | "practice_answer"
+  | "practice_done";
 
 export type Props = Record<string, string | number | boolean | null>;
 

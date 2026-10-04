@@ -1,5 +1,8 @@
 import { levels } from "@vicoding/levels";
 import { isUnlocked, type Progress } from "../game/progress.ts";
+import { PUZZLE_IDS } from "../practice/puzzles.ts";
+import { dueCount, mastery } from "../practice/schedule.ts";
+import { loadMemory } from "../practice/store.ts";
 
 const ORDER = levels.map((l) => l.definition.id);
 
@@ -10,9 +13,13 @@ interface LevelMapProps {
   trialUnlocked: boolean;
   trialDone: boolean;
   onOpenTrial: () => void;
+  onPractice: () => void;
 }
 
-export function LevelMap({ progress, onOpen, trialUnlocked, trialDone, onOpenTrial }: LevelMapProps) {
+export function LevelMap({ progress, onOpen, trialUnlocked, trialDone, onOpenTrial, onPractice }: LevelMapProps) {
+  const memory = loadMemory();
+  const due = dueCount(PUZZLE_IDS, memory, Date.now());
+  const known = Math.round(mastery(PUZZLE_IDS, memory) * 100);
   return (
     <div className="map">
       <header className="map-header">
@@ -22,6 +29,17 @@ export function LevelMap({ progress, onOpen, trialUnlocked, trialDone, onOpenTri
       <section className="realm" aria-label="Arraia">
         <h2>Arraia, the Free City</h2>
         <p className="realm-intro">Captain Ada teaches the oldest skill of all: walking a line of tiles without losing your place.</p>
+        <button type="button" className="practice-card" onClick={onPractice}>
+          <span className="practice-card-icon" aria-hidden>
+            ⚡
+          </span>
+          <span className="practice-card-title">Quick practice</span>
+          <span className="practice-card-sub">The tallest scroll, in 3 minutes</span>
+          <span className="practice-card-due">{due > 0 ? `${due} ready` : "All caught up"}</span>
+          <span className="known" role="img" aria-label={`Known: ${known} percent`}>
+            <span className="known-fill" style={{ width: `${known}%` }} />
+          </span>
+        </button>
         <ol className="path">
           {levels.map(({ definition }) => {
             const unlocked = isUnlocked(progress, ORDER, definition.id);
