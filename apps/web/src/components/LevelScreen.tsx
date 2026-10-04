@@ -20,6 +20,7 @@ import { hapticError, hapticSuccess } from "../game/native.ts";
 import { measureGrowth, type GrowthPoint } from "../game/growth.ts";
 import { formatValue } from "../game/narrate.ts";
 import { Board } from "./Board.tsx";
+import { ScrollBoard, usesScrollBoard } from "./ScrollBoard.tsx";
 import { ChargePanel } from "./ChargePanel.tsx";
 import { CodePanel } from "./CodePanel.tsx";
 import { HandMode } from "./HandMode.tsx";
@@ -86,6 +87,7 @@ export function LevelScreen({ level, savedPlan, stars, nextLabel, onPlanChange, 
   const [divergenceAt, setDivergenceAt] = useState<number | null>(null);
   /** Card picked by tapping a code line (highlighted when no run is shown). */
   const [selectedCard, setSelectedCard] = useState<NodeId | undefined>(undefined);
+  const visualBoard = usesScrollBoard(def.id);
   const [handActive, setHandActive] = useState(() => def.handMode && !(savedPlan && savedPlan.body.length > 0));
 
   const context = useMemo(
@@ -293,7 +295,15 @@ export function LevelScreen({ level, savedPlan, stars, nextLabel, onPlanChange, 
             <HandMode level={level} input={activeInput} onDone={finishHandMode} />
           ) : (
             <>
-          <Board frame={frame} inputs={def.inputs} />
+          {visualBoard ? (
+            <ScrollBoard
+              frame={frame}
+              array={def.inputs.find((i) => i.type !== "number")!.name}
+              scalars={def.inputs.filter((i) => i.type === "number").map((i) => i.name)}
+            />
+          ) : (
+            <Board frame={frame} inputs={def.inputs} />
+          )}
           <Timeline
             position={position}
             length={length}
@@ -312,7 +322,7 @@ export function LevelScreen({ level, savedPlan, stars, nextLabel, onPlanChange, 
             }}
             onSpeed={setSpeed}
           />
-          <p className="caption" aria-live="polite">
+          <p className={visualBoard ? "caption sr-only" : "caption"} aria-live="polite">
             {frame.caption}
           </p>
           {divergenceAt !== null && position === divergenceAt && (

@@ -92,7 +92,7 @@ test("level 1: build the plan by tapping cards, run it, and charge for three sta
 
   await runToEnd(page);
   await expect(page.locator(".verdict")).toContainText("Correct for this example: 9");
-  await expect(page.locator(".victory-banner")).toContainText("returns 9");
+  await expect(page.getByRole("img", { name: "Victory: returns 9" })).toBeVisible();
 
   await page.getByRole("button", { name: "⚔ Charge!" }).click();
   const results = page.getByRole("dialog", { name: "Charge results" });

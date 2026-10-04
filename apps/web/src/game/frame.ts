@@ -30,6 +30,8 @@ export interface Frame {
   compare: { op: CompareOp; left: Value; right: Value; result: boolean } | undefined;
   /** Every tile each pointer has stood on so far, in order (footprints). */
   trails: Record<string, number[]>;
+  /** How many times each banner has been raised or changed so far. */
+  varSets: Record<string, number>;
   /** Narration of this step. */
   caption: string;
 }
@@ -41,6 +43,7 @@ export interface Frame {
 export function buildFrame(inputs: Inputs, events: readonly EngineEvent[], beats: readonly Beat[], position: number): Frame {
   const state = initialState(inputs);
   const trails: Record<string, number[]> = {};
+  const varSets: Record<string, number> = {};
   const clamped = Math.max(0, Math.min(position, beats.length));
   const beat = clamped > 0 ? beats[clamped - 1] : undefined;
   const lastEvent = beat ? beat.end : -1;
@@ -48,6 +51,7 @@ export function buildFrame(inputs: Inputs, events: readonly EngineEvent[], beats
   for (let i = 0; i <= lastEvent; i += 1) {
     const event = events[i] as EngineEvent;
     applyEvent(state, event);
+    if (event.type === "var.set") varSets[event.name] = (varSets[event.name] ?? 0) + 1;
     if (event.type === "agent.place") trails[event.agent] = [...(trails[event.agent] ?? []), event.index];
     if (event.type === "agent.move") trails[event.agent] = [...(trails[event.agent] ?? []), event.to];
   }
@@ -73,6 +77,7 @@ export function buildFrame(inputs: Inputs, events: readonly EngineEvent[], beats
     changedVars,
     compare,
     trails,
+    varSets,
     caption: beat ? describeEvents(beatEvents) : "Ready. Press play to start.",
   };
 }
