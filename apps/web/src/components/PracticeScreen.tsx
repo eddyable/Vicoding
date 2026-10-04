@@ -4,22 +4,35 @@ import { buildFrame } from "../game/frame.ts";
 import {
   BUGS,
   PUZZLE_IDS,
+  TWIN_BUGS,
   WATCH_SHELVES,
+  WATCH_WORDS,
   correctAnswer,
   flagBefore,
   flagMoves,
   foolingShelf,
+  foolingWord,
   getPuzzle,
+  patternOf,
+  resultWord,
+  reverseWord,
+  swapCount,
   traceOf,
   type BugPuzzle,
   type FinalPuzzle,
   type MovesPuzzle,
+  type Pattern,
   type Puzzle,
+  type ResultPuzzle,
+  type SwapsPuzzle,
   type TracePuzzle,
+  type TwinsBugPuzzle,
 } from "../practice/puzzles.ts";
 import { describeWait, interleave, mastery, pickSession, review, type Memory } from "../practice/schedule.ts";
 import { makeShelfRun, type ShelfRun } from "../practice/shelfRun.ts";
 import { loadMemory, saveMemory } from "../practice/store.ts";
+import { TWINS_INPUTS, makeTwinsRun } from "../practice/twinsRun.ts";
+import { Board } from "./Board.tsx";
 import { ScrollBoard } from "./ScrollBoard.tsx";
 
 const SESSION_SIZE = 5;
@@ -28,6 +41,22 @@ const STEP_MS = 600;
 interface Entry {
   id: string;
   retry: boolean;
+}
+
+/** The pattern an entry belongs to. */
+function entryPattern(entry: Entry | undefined): Pattern | undefined {
+  return entry ? patternOf(entry.id) : undefined;
+}
+
+/** True once the player has answered anything from this pattern. */
+function knowsPattern(memory: Memory, pattern: Pattern): boolean {
+  return PUZZLE_IDS.some((id) => patternOf(id) === pattern && memory[id] !== undefined);
+}
+
+/** Which demo of a pattern to show: rotates as the player gets more practice. */
+function watchIndex(memory: Memory, pattern: Pattern): number {
+  const seen = PUZZLE_IDS.filter((id) => patternOf(id) === pattern).reduce((n, id) => n + (memory[id]?.seen ?? 0), 0);
+  return seen % (pattern === "max" ? WATCH_SHELVES.length : WATCH_WORDS.length);
 }
 
 function planSession(memory: Memory): Entry[] {
@@ -43,7 +72,14 @@ interface PracticeScreenProps {
 export function PracticeScreen({ onExit }: PracticeScreenProps) {
   const [memory, setMemory] = useState<Memory>(loadMemory);
   const [queue, setQueue] = useState<Entry[]>(() => planSession(memory));
-  const [watchShelf] = useState(() => WATCH_SHELVES[Object.values(memory).reduce((n, c) => n + c.seen, 0) % WATCH_SHELVES.length]!);
+  const [watching, setWatching] = useState<{ pattern: Pattern; at: number } | undefined>(() => {
+    const pattern = entryPattern(queue[0]);
+    return pattern ? { pattern, at: watchIndex(memory, pattern) } : undefined;
+  });
+  const [watched, setWatched] = useState<Pattern[]>(() => {
+    const pattern = entryPattern(queue[0]);
+    return pattern ? [pattern] : [];
+  });
   const [phase, setPhase] = useState<"watch" | "ask" | "summary">(queue.length > 0 ? "watch" : "summary");
   const [index, setIndex] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
@@ -79,7 +115,18 @@ export function PracticeScreen({ onExit }: PracticeScreenProps) {
     } else {
       setIndex(index + 1);
       setPicked(null);
+      showNewPattern(queue[index + 1]);
     }
+  };
+
+  /** A pattern met for the first time is shown running before its first question. */
+  const showNewPattern = (upcoming: Entry | undefined): boolean => {
+    const pattern = entryPattern(upcoming);
+    if (!pattern || watched.includes(pattern) || knowsPattern(memory, pattern)) return false;
+    setWatched([...watched, pattern]);
+    setWatching({ pattern, at: watchIndex(memory, pattern) });
+    setPhase("watch");
+    return true;
   };
 
   const again = () => {
@@ -88,7 +135,7 @@ export function PracticeScreen({ onExit }: PracticeScreenProps) {
     setIndex(0);
     setPicked(null);
     setResults([]);
-    setPhase(fresh.length > 0 ? "ask" : "summary");
+    if (!showNewPattern(fresh[0])) setPhase(fresh.length > 0 ? "ask" : "summary");
   };
 
   return (
@@ -107,7 +154,7 @@ export function PracticeScreen({ onExit }: PracticeScreenProps) {
         </ol>
       </header>
 
-      {phase === "watch" && <Watch shelf={watchShelf} onDone={() => setPhase("ask")} />}
+      {phase === "watch" && watching && <Watch key={watching.pattern} pattern={watching.pattern} at={watching.at} onDone={() => setPhase("ask")} />}
 
       {phase === "ask" && puzzle && entry && (
         <Question key={`${entry.id}-${index}`} puzzle={puzzle} retry={entry.retry} picked={picked} onAnswer={answer} onNext={next} last={index + 1 >= queue.length} />
@@ -118,7 +165,7 @@ export function PracticeScreen({ onExit }: PracticeScreenProps) {
   );
 }
 
-function usePlayer(run: ShelfRun, from: number, to: number, playing: boolean) {
+function usePlayer(run: Pick<ShelfRun, "inputs" | "events" | "beats">, from: number, to: number, playing: boolean) {
   const [position, setPosition] = useState(from);
   useEffect(() => {
     if (!playing) return;
@@ -128,12 +175,11 @@ function usePlayer(run: ShelfRun, from: number, to: number, playing: boolean) {
   return buildFrame(run.inputs, run.events, run.beats, position);
 }
 
-function Watch({ shelf, onDone }: { shelf: number[]; onDone: () => void }) {
-  const run = useMemo(() => makeShelfRun(shelf), [shelf]);
+function Watch({ pattern, at, onDone }: { pattern: Pattern; at: number; onDone: () => void }) {
   const [replay, setReplay] = useState(0);
   return (
     <div className="practice-body">
-      <WatchPlayer key={replay} run={run} shelf={shelf} />
+      {pattern === "max" ? <ShelfWatch key={replay} shelf={WATCH_SHELVES[at]!} /> : <TwinsWatch key={replay} word={WATCH_WORDS[at]!} />}
       <div className="practice-actions">
         <button type="button" className="icon" onClick={() => setReplay((r) => r + 1)} aria-label="Watch again">
           ↻
@@ -146,7 +192,22 @@ function Watch({ shelf, onDone }: { shelf: number[]; onDone: () => void }) {
   );
 }
 
-function WatchPlayer({ run, shelf }: { run: ShelfRun; shelf: number[] }) {
+function TwinsWatch({ word }: { word: string }) {
+  const run = useMemo(() => makeTwinsRun(word), [word]);
+  const frame = usePlayer(run, 0, run.length, true);
+  return (
+    <>
+      <p className="ask">The twins swap letters from both ends</p>
+      <Board frame={frame} inputs={TWINS_INPUTS} />
+      <p className="sr-only" role="status">
+        {frame.caption} Word: {word}.
+      </p>
+    </>
+  );
+}
+
+function ShelfWatch({ shelf }: { shelf: number[] }) {
+  const run = useMemo(() => makeShelfRun(shelf), [shelf]);
   const frame = usePlayer(run, 0, run.length, true);
   return (
     <>
@@ -183,6 +244,9 @@ function Question({ puzzle, retry, picked, onAnswer, onNext, last }: QuestionPro
       {(puzzle.kind === "moves" || puzzle.kind === "final") && <ShelfQuestion puzzle={puzzle} {...choice} />}
       {puzzle.kind === "trace" && <TraceQuestion puzzle={puzzle} {...choice} />}
       {puzzle.kind === "bug" && <BugQuestion puzzle={puzzle} {...choice} />}
+      {puzzle.kind === "swaps" && <SwapsQuestion puzzle={puzzle} {...choice} />}
+      {puzzle.kind === "result" && <ResultQuestion puzzle={puzzle} {...choice} />}
+      {puzzle.kind === "twinbug" && <TwinBugQuestion puzzle={puzzle} {...choice} />}
 
       {done && (
         <div className={`feedback ${right ? "right" : "wrong"}`} role="status">
@@ -215,6 +279,16 @@ function explain(puzzle: Puzzle): string {
     case "bug": {
       const fool = puzzle.shelves[foolingShelf(puzzle)] as number[];
       return `This plan says ${BUGS[puzzle.bug].run(fool)}, but the tallest is ${Math.max(...fool)}: ${BUGS[puzzle.bug].why}.`;
+    }
+    case "swaps": {
+      const n = puzzle.word.length;
+      return `Each swap settles two letters${n % 2 === 1 ? " and the middle one stays put" : ""}, so ${n} letters need ${swapCount(puzzle.word)} swaps.`;
+    }
+    case "result":
+      return `Every swap sends a letter to the opposite end, so ${puzzle.word} becomes ${reverseWord(puzzle.word)}.`;
+    case "twinbug": {
+      const word = puzzle.words[foolingWord(puzzle)] as string;
+      return `This plan turns ${word} into ${TWIN_BUGS[puzzle.bug].run(word)}, but a reversal is ${reverseWord(word)}: ${TWIN_BUGS[puzzle.bug].why}.`;
     }
   }
 }
@@ -304,6 +378,75 @@ function BugQuestion({ puzzle, ...choice }: { puzzle: BugPuzzle } & ChoiceProps)
             {choice.picked !== null && (
               <span className="opt-result" aria-hidden>
                 {bug.run(shelf)} {bug.run(shelf) === Math.max(...shelf) ? "✓" : "✕"}
+              </span>
+            )}
+          </Option>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function SwapsQuestion({ puzzle, ...choice }: { puzzle: SwapsPuzzle } & ChoiceProps) {
+  const run = useMemo(() => makeTwinsRun(puzzle.word), [puzzle]);
+  const frame = usePlayer(run, 0, run.length, choice.picked !== null);
+  const n = puzzle.word.length;
+  const counts = [...new Set([swapCount(puzzle.word), swapCount(puzzle.word) + 1, n])].sort((a, b) => a - b);
+  return (
+    <>
+      <p className="ask">How many swaps will the twins make?</p>
+      <Board frame={frame} inputs={TWINS_INPUTS} />
+      <div className="options row">
+        {counts.map((c) => (
+          <Option key={c} value={String(c)} label={`${c} swaps`} {...choice}>
+            <span className="opt-icon">🔁</span>
+            {c}
+          </Option>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function ResultQuestion({ puzzle, ...choice }: { puzzle: ResultPuzzle } & ChoiceProps) {
+  const run = useMemo(() => makeTwinsRun(puzzle.word), [puzzle]);
+  const frame = usePlayer(run, 0, run.length, choice.picked !== null);
+  return (
+    <>
+      <p className="ask">What word will the twins leave?</p>
+      <Board frame={frame} inputs={TWINS_INPUTS} />
+      <div className="options row">
+        {puzzle.options.map((id) => (
+          <Option key={id} value={id} label={`Word ${resultWord(puzzle.word, id)}`} {...choice}>
+            <span className="opt-word">{resultWord(puzzle.word, id)}</span>
+          </Option>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function TwinBugQuestion({ puzzle, ...choice }: { puzzle: TwinsBugPuzzle } & ChoiceProps) {
+  const bug = TWIN_BUGS[puzzle.bug];
+  return (
+    <>
+      <p className="ask">Spot the mistake</p>
+      <p className="suspect">A clumsy helper tries to reverse a word. Here is his method:</p>
+      <ol className="plan-steps">
+        {bug.steps.map((text, i) => (
+          <li key={i} className={choice.picked !== null && i === bug.bad ? "bad" : ""}>
+            {text}
+          </li>
+        ))}
+      </ol>
+      <p className="suspect">Try it on each word. Which one comes out wrong?</p>
+      <div className="options row">
+        {puzzle.words.map((word, i) => (
+          <Option key={word} value={String(i)} label={`Word ${word}`} {...choice}>
+            <span className="opt-word">{word}</span>
+            {choice.picked !== null && (
+              <span className="opt-result" aria-hidden>
+                {bug.run(word)} {bug.run(word) === reverseWord(word) ? "✓" : "✕"}
               </span>
             )}
           </Option>

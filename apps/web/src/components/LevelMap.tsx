@@ -34,7 +34,7 @@ export function LevelMap({ progress, onOpen, trialUnlocked, trialDone, onOpenTri
             ⚡
           </span>
           <span className="practice-card-title">Quick practice</span>
-          <span className="practice-card-sub">The tallest scroll, in 3 minutes</span>
+          <span className="practice-card-sub">Scroll banners and mirror twins, in 3 minutes</span>
           <span className="practice-card-due">{due > 0 ? `${due} ready` : "All caught up"}</span>
           <span className="known" role="img" aria-label={`Known: ${known} percent`}>
             <span className="known-fill" style={{ width: `${known}%` }} />

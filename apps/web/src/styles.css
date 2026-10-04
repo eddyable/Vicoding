@@ -2163,6 +2163,11 @@ button.big {
 .opt-result {
   font-size: 0.95rem;
 }
+.opt-word {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  letter-spacing: 0.12em;
+  overflow-wrap: anywhere;
+}
 .trail {
   width: 100%;
   height: 84px;

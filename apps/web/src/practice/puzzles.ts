@@ -1,8 +1,11 @@
 /**
- * Micro-puzzles for the "keep the best so far" pattern (the tallest scroll).
- * They are data; every answer is derived from the shelf, never typed in twice.
+ * Micro-puzzles for two patterns: "keep the best so far" (the tallest scroll,
+ * ids `max/...`) and "two pointers from both ends" (the mirror twins, ids
+ * `twins/...`). They are data; every answer is derived from the shelf or word,
+ * never typed in twice.
  */
-export type PuzzleKind = "moves" | "final" | "trace" | "bug";
+export type PuzzleKind = "moves" | "final" | "trace" | "bug" | "swaps" | "result" | "twinbug";
+export type Pattern = "max" | "twins";
 export type TraceId = "max" | "min" | "latest";
 export type BugId = "zeroStart" | "skipLast";
 
@@ -32,7 +35,85 @@ export interface BugPuzzle {
   /** Candidate shelves; exactly one fools the buggy plan. */
   shelves: number[][];
 }
-export type Puzzle = MovesPuzzle | FinalPuzzle | TracePuzzle | BugPuzzle;
+export interface SwapsPuzzle {
+  id: string;
+  kind: "swaps";
+  word: string;
+}
+export type ResultId = "reverse" | "same" | "ends";
+export interface ResultPuzzle {
+  id: string;
+  kind: "result";
+  word: string;
+  /** Candidate outcomes, in display order. The real one is "reverse". */
+  options: ResultId[];
+}
+export type TwinsBugId = "stopEarly" | "walkAll";
+export interface TwinsBugPuzzle {
+  id: string;
+  kind: "twinbug";
+  bug: TwinsBugId;
+  /** Candidate words; exactly one fools the buggy plan. */
+  words: string[];
+}
+export type Puzzle = MovesPuzzle | FinalPuzzle | TracePuzzle | BugPuzzle | SwapsPuzzle | ResultPuzzle | TwinsBugPuzzle;
+
+export function patternOf(id: string): Pattern {
+  return id.startsWith("twins/") ? "twins" : "max";
+}
+
+export function reverseWord(word: string): string {
+  return [...word].reverse().join("");
+}
+
+/** Swapping only the two end letters: a plausible but wrong result. */
+function endsOnly(word: string): string {
+  const w = [...word];
+  if (w.length > 1) [w[0], w[w.length - 1]] = [w[w.length - 1]!, w[0]!];
+  return w.join("");
+}
+
+export function resultWord(word: string, id: ResultId): string {
+  return id === "reverse" ? reverseWord(word) : id === "same" ? word : endsOnly(word);
+}
+
+/** Swaps the twins make: each settles two letters, the middle one stays. */
+export function swapCount(word: string): number {
+  return Math.floor(word.length / 2);
+}
+
+/** Sneaky almost-right twin plans: what each returns for a word. */
+export const TWIN_BUGS: Record<TwinsBugId, { why: string; steps: string[]; bad: number; run: (word: string) => string }> = {
+  stopEarly: {
+    why: "the twins stopped before swapping the middle pair",
+    steps: ["Put one twin on each end.", "Swap them, then step both inward. Stop as soon as the twins are next to each other, before swapping them.", "Report the word."],
+    bad: 1,
+    run: (word) => {
+      const w = [...word];
+      let l = 0;
+      let r = w.length - 1;
+      while (l < r - 1) {
+        [w[l], w[r]] = [w[r]!, w[l]!];
+        l += 1;
+        r -= 1;
+      }
+      return w.join("");
+    },
+  },
+  walkAll: {
+    why: "the twins kept going and swapped every pair back",
+    steps: ["Put one twin on each end.", "Swap them, then step both inward. Never stop: keep going until the left twin walks off the far end.", "Report the word."],
+    bad: 1,
+    run: (word) => {
+      const w = [...word];
+      for (let l = 0; l < w.length; l += 1) {
+        const r = w.length - 1 - l;
+        [w[l], w[r]] = [w[r]!, w[l]!];
+      }
+      return w.join("");
+    },
+  },
+};
 
 /** Sneaky almost-right plans: what each returns for a shelf. */
 export const BUGS: Record<BugId, { label: string; why: string; steps: string[]; bad: number; run: (shelf: readonly number[]) => number }> = {
@@ -51,6 +132,8 @@ export const BUGS: Record<BugId, { label: string; why: string; steps: string[]; 
     run: (shelf) => Math.max(...shelf.slice(0, -1)),
   },
 };
+
+export const WATCH_WORDS = ["marble", "pencil", "button"];
 
 export const WATCH_SHELVES: number[][] = [
   [3, 8, 5, 9, 4],
@@ -75,6 +158,12 @@ export const PUZZLES: Puzzle[] = [
   { id: "max/moves-4", kind: "moves", shelf: [2, 6, 3, 5, 9], at: 4 },
   { id: "max/trace-2", kind: "trace", shelf: [8, 6, 9, 5, 9], options: ["min", "latest", "max"] },
   { id: "max/bug-2", kind: "bug", bug: "skipLast", shelves: [[2, 9, 4], [1, 3, 8], [7, 7, 7]] },
+  { id: "twins/swaps-1", kind: "swaps", word: "hello" },
+  { id: "twins/result-1", kind: "result", word: "stone", options: ["ends", "reverse", "same"] },
+  { id: "twins/swaps-2", kind: "swaps", word: "bridges" },
+  { id: "twins/bug-1", kind: "twinbug", bug: "stopEarly", words: ["tower", "moat", "plank"] },
+  { id: "twins/result-2", kind: "result", word: "wolf", options: ["same", "ends", "reverse"] },
+  { id: "twins/bug-2", kind: "twinbug", bug: "walkAll", words: ["noon", "gate", "level"] },
 ];
 
 export const PUZZLE_IDS = PUZZLES.map((p) => p.id);
@@ -105,6 +194,12 @@ export function foolingShelf(puzzle: BugPuzzle): number {
   return puzzle.shelves.findIndex((s) => bug.run(s) !== Math.max(...s));
 }
 
+/** Index of the word that fools the buggy twin plan. */
+export function foolingWord(puzzle: TwinsBugPuzzle): number {
+  const bug = TWIN_BUGS[puzzle.bug];
+  return puzzle.words.findIndex((w) => bug.run(w) !== reverseWord(w));
+}
+
 /** The correct option for a puzzle, as the index/value its answer buttons use. */
 export function correctAnswer(puzzle: Puzzle): string {
   switch (puzzle.kind) {
@@ -116,5 +211,11 @@ export function correctAnswer(puzzle: Puzzle): string {
       return "max";
     case "bug":
       return String(foolingShelf(puzzle));
+    case "swaps":
+      return String(swapCount(puzzle.word));
+    case "result":
+      return "reverse";
+    case "twinbug":
+      return String(foolingWord(puzzle));
   }
 }

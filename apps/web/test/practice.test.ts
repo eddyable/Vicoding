@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { buildFrame } from "../src/game/frame.ts";
 import { DAY, describeWait, dueCount, interleave, isDue, mastery, nextDueAt, pickSession, review, type Memory } from "../src/practice/schedule.ts";
-import { BUGS, PUZZLES, PUZZLE_IDS, WATCH_SHELVES, correctAnswer, flagMoves, foolingShelf, traceOf } from "../src/practice/puzzles.ts";
+import { BUGS, PUZZLES, PUZZLE_IDS, TWIN_BUGS, WATCH_SHELVES, WATCH_WORDS, correctAnswer, flagMoves, foolingShelf, foolingWord, patternOf, resultWord, reverseWord, swapCount, traceOf } from "../src/practice/puzzles.ts";
 import { makeShelfRun } from "../src/practice/shelfRun.ts";
+import { makeTwinsRun } from "../src/practice/twinsRun.ts";
 
 describe("Leitner schedule", () => {
   const now = 1_000_000;
@@ -140,5 +141,46 @@ describe("shelf runs on the real engine", () => {
     }
     const start = buildFrame(r.inputs, r.events, r.beats, r.arrivalAt(2)!);
     expect(start.state.vars.best).toBe(4);
+  });
+});
+
+describe("mirror twins puzzles", () => {
+  const twins = PUZZLES.filter((p) => patternOf(p.id) === "twins");
+
+  it("are tagged by id prefix and come after the scroll puzzles", () => {
+    expect(twins.length).toBeGreaterThanOrEqual(6);
+    const firstTwin = PUZZLES.findIndex((p) => patternOf(p.id) === "twins");
+    expect(PUZZLES.slice(firstTwin).every((p) => patternOf(p.id) === "twins")).toBe(true);
+  });
+
+  it("every twin bug puzzle has exactly one word that fools the plan", () => {
+    for (const p of twins) {
+      if (p.kind !== "twinbug") continue;
+      const fooled = p.words.filter((w) => TWIN_BUGS[p.bug].run(w) !== reverseWord(w));
+      expect(fooled, p.id).toHaveLength(1);
+      expect(foolingWord(p)).toBe(p.words.indexOf(fooled[0]!));
+    }
+  });
+
+  it("result puzzles list the true reversal once, among three different words", () => {
+    for (const p of twins) {
+      if (p.kind !== "result") continue;
+      expect(p.options.filter((o) => o === "reverse")).toHaveLength(1);
+      expect(new Set(p.options.map((o) => resultWord(p.word, o))).size, p.id).toBe(p.options.length);
+    }
+  });
+
+  it("the engine agrees with the answers: swap count and reversed word", () => {
+    for (const p of twins) {
+      if (p.kind === "bug" || !("word" in p)) continue;
+      const r = makeTwinsRun(p.word);
+      expect(r.events.filter((e) => e.type === "array.swap"), p.id).toHaveLength(swapCount(p.word));
+      const end = buildFrame(r.inputs, r.events, r.beats, r.length);
+      expect((end.state.arrays.letters as string[]).join(""), p.id).toBe(reverseWord(p.word));
+    }
+  });
+
+  it("keeps watch words out of the questions", () => {
+    for (const p of twins) if ("word" in p) expect(WATCH_WORDS).not.toContain(p.word);
   });
 });
