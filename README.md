@@ -2,6 +2,7 @@
 
 A game where you learn coding-interview patterns by building algorithms visually, watching them run, and then reading the code you just wrote.
 
+- **Status and next steps:** [`docs/STATUS.md`](docs/STATUS.md). Working on this repo with Claude Code? See [`CLAUDE.md`](CLAUDE.md).
 - **Design docs:** start with [`docs/design/00-big-picture.md`](docs/design/00-big-picture.md), or see the [docs index](docs/README.md).
 - **Current milestone:** [PRD v0 — Vertical Slice](docs/prd/PRD-v0-vertical-slice.md). Tech stack: [ADR 0001](docs/adr/0001-tech-stack.md).
 
