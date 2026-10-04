@@ -72,6 +72,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ["**/*.{js,css,html,svg,png,webmanifest}"],
         // Pyodide (~14 MB) is cached the first time the transfer test opens, not at install.
         globIgnores: ["pyodide/**"],

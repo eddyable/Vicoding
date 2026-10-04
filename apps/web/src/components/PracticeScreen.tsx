@@ -113,7 +113,7 @@ export function PracticeScreen({ onExit }: PracticeScreenProps) {
         <Question key={`${entry.id}-${index}`} puzzle={puzzle} retry={entry.retry} picked={picked} onAnswer={answer} onNext={next} last={index + 1 >= queue.length} />
       )}
 
-      {phase === "summary" && <Summary results={results} memory={memory} onExit={onExit} onAgain={again} />}
+      {phase === "summary" && <Summary results={results.filter((_, i) => !queue[i]?.retry)} memory={memory} onExit={onExit} onAgain={again} />}
     </div>
   );
 }
@@ -369,7 +369,7 @@ function Summary({ results, memory, onExit, onAgain }: { results: boolean[]; mem
       ) : (
         <>
           <p className="big-emoji" aria-hidden>
-            {score === results.length ? "🏆" : "🌟"}
+            {score === results.length ? "🏆" : score * 2 >= results.length ? "🌟" : "💪"}
           </p>
           <p className="ask" aria-label={`Score ${score} of ${results.length}`}>
             {score} / {results.length}
