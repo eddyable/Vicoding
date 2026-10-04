@@ -197,6 +197,22 @@ test("level 1: solve it by hand, turn the moves into a plan, and read the Spell 
   await expect(results.locator(".growth-verdict")).toContainText("straight line");
 });
 
+test("level 1: hand mode nudges when the banner is missed or lowered", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /The Tallest Scroll/ }).click();
+  await page.getByRole("button", { name: "Place the soldier on the first scroll" }).click();
+
+  await page.getByRole("button", { name: "Step ➜" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Raise it here first" })).toContainText("3 is taller");
+
+  await page.getByRole("button", { name: "⚑ Raise the banner here" }).click();
+  await page.getByRole("button", { name: "Step ➜" }).click();
+  await page.getByRole("button", { name: "⚑ Raise the banner here" }).click();
+  await page.getByRole("button", { name: "Step ➜" }).click();
+  await page.getByRole("button", { name: "⚑ Raise the banner here" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Raising it here would lower" })).toBeVisible();
+});
+
 test("level 1: Grukk's nested loops win one star and summon the Ogre", async ({ page }) => {
   const b = createBuilder("e2e-");
   const bruteForce = b.program(

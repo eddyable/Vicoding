@@ -88,6 +88,15 @@ describe("max-scan puzzles", () => {
     }
   });
 
+  it("the first sitting only asks whether the banner rises and where it ends", () => {
+    expect(PUZZLES.slice(0, 5).map((p) => p.kind).every((k) => k === "moves" || k === "final")).toBe(true);
+  });
+
+  it("no final-value puzzle reuses a watch shelf", () => {
+    const watched = WATCH_SHELVES.map((s) => s.join());
+    for (const p of PUZZLES) if (p.kind === "final") expect(watched, p.id).not.toContain(p.shelf.join());
+  });
+
   it("moves puzzles mix yes and no answers", () => {
     const answers = PUZZLES.filter((p) => p.kind === "moves").map(correctAnswer);
     expect(answers).toContain("moves");

@@ -21,6 +21,7 @@ export function HandMode({ level, input, onDone }: HandModeProps) {
   const [best, setBest] = useState<Value | null>(null);
   const [verdict, setVerdict] = useState<"right" | "wrong" | null>(null);
   const [visited, setVisited] = useState<number[]>([]);
+  const [nudge, setNudge] = useState<string | null>(null);
   const expected = level.reference(input);
   const atEnd = pos !== null && pos >= tiles.length - 1;
 
@@ -29,8 +30,29 @@ export function HandMode({ level, input, onDone }: HandModeProps) {
     setBest(null);
     setVerdict(null);
     setVisited([]);
+    setNudge(null);
+  };
+  const taller = (i: number) => {
+    const v = tiles[i];
+    return typeof v === "number" && (best === null || (typeof best === "number" && v > best));
+  };
+  const raise = (i: number) => {
+    const v = tiles[i];
+    if (typeof v === "number" && !taller(i)) {
+      setNudge(`${formatValue(v)} is not taller than your banner (${formatValue(best)}). Raising it here would lower the banner.`);
+      return;
+    }
+    setNudge(null);
+    setBest(v ?? null);
+  };
+  /** Moving on (or reporting) with a missed raise gets a hint about the scroll just passed. */
+  const missed = (i: number) => {
+    if (!taller(i)) return false;
+    setNudge(`${formatValue(tiles[i])} is taller than your banner (${best === null ? "not raised yet" : formatValue(best)}). Raise it here first.`);
+    return true;
   };
   const step = (to: number) => {
+    setNudge(null);
     setPos(to);
     setVisited((v) => [...v, to]);
   };
@@ -61,6 +83,12 @@ export function HandMode({ level, input, onDone }: HandModeProps) {
         <span className="banner">⚑ best = {best === null ? "(not raised yet)" : formatValue(best)}</span>
       </div>
 
+      {nudge !== null && verdict === null && (
+        <p className="hand-nudge" role="status">
+          💡 {nudge}
+        </p>
+      )}
+
       {verdict === null && (
         <div className="hand-buttons">
           {pos === null ? (
@@ -69,15 +97,15 @@ export function HandMode({ level, input, onDone }: HandModeProps) {
             </button>
           ) : (
             <>
-              <button type="button" onClick={() => setBest(tiles[pos] ?? null)}>
+              <button type="button" onClick={() => raise(pos)}>
                 ⚑ Raise the banner here
               </button>
               {!atEnd ? (
-                <button type="button" className="primary" onClick={() => step(pos + 1)}>
+                <button type="button" className="primary" onClick={() => !missed(pos) && step(pos + 1)}>
                   Step ➜
                 </button>
               ) : (
-                <button type="button" className="primary" onClick={() => setVerdict(best !== null && valuesEqual(best, expected) ? "right" : "wrong")}>
+                <button type="button" className="primary" onClick={() => !missed(pos) && setVerdict(best !== null && valuesEqual(best, expected) ? "right" : "wrong")}>
                   Report: the tallest is {best === null ? "…" : formatValue(best)}
                 </button>
               )}

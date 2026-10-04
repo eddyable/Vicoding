@@ -206,15 +206,15 @@ function explain(puzzle: Puzzle): string {
     case "moves": {
       const v = puzzle.shelf[puzzle.at] as number;
       const before = flagBefore(puzzle.shelf, puzzle.at);
-      return flagMoves(puzzle.shelf, puzzle.at) ? `${v} is taller than ${before}, so the flag rises.` : `${v} is not taller than ${before}, so the flag stays.`;
+      return flagMoves(puzzle.shelf, puzzle.at) ? `${v} is taller than ${before}, so the banner rises.` : `${v} is not taller than ${before}, so the banner stays.`;
     }
     case "final":
-      return `The flag ends on the tallest: ${Math.max(...puzzle.shelf)}.`;
+      return `The banner only ever rises, so it ends on the tallest scroll: ${Math.max(...puzzle.shelf)}.`;
     case "trace":
-      return "The flag only ever rises. It keeps the tallest seen so far.";
+      return "The banner only ever rises. At each step it shows the tallest scroll seen so far.";
     case "bug": {
       const fool = puzzle.shelves[foolingShelf(puzzle)] as number[];
-      return `This plan says ${BUGS[puzzle.bug].run(fool)}, but the tallest is ${Math.max(...fool)}.`;
+      return `This plan says ${BUGS[puzzle.bug].run(fool)}, but the tallest is ${Math.max(...fool)}: ${BUGS[puzzle.bug].why}.`;
     }
   }
 }
@@ -233,21 +233,21 @@ function ShelfQuestion({ puzzle, ...choice }: { puzzle: MovesPuzzle | FinalPuzzl
   const values = puzzle.kind === "final" ? [...new Set(puzzle.shelf)].sort((a, b) => a - b) : [];
   return (
     <>
-      <p className="ask">{puzzle.kind === "moves" ? "Does the flag move?" : "Where will the flag end?"}</p>
+      <p className="ask">{puzzle.kind === "moves" ? "Does the banner rise?" : "Where will the banner end?"}</p>
       <ScrollBoard frame={frame} array="scrolls" scalars={[]} />
       <div className="options row">
         {puzzle.kind === "moves" ? (
           <>
-            <Option value="moves" label="Flag moves up" {...choice}>
-              <span className="opt-icon">⬆</span>Moves
+            <Option value="moves" label="Banner rises" {...choice}>
+              <span className="opt-icon">⬆</span>Rises
             </Option>
-            <Option value="stays" label="Flag stays" {...choice}>
+            <Option value="stays" label="Banner stays" {...choice}>
               <span className="opt-icon">⏸</span>Stays
             </Option>
           </>
         ) : (
           values.map((v) => (
-            <Option key={v} value={String(v)} label={`Flag ends at ${v}`} {...choice}>
+            <Option key={v} value={String(v)} label={`Banner ends at ${v}`} {...choice}>
               <span className="opt-icon">📜</span>
               {v}
             </Option>
@@ -259,10 +259,13 @@ function ShelfQuestion({ puzzle, ...choice }: { puzzle: MovesPuzzle | FinalPuzzl
 }
 
 function TraceQuestion({ puzzle, ...choice }: { puzzle: TracePuzzle } & ChoiceProps) {
+  const run = useMemo(() => makeShelfRun(puzzle.shelf), [puzzle]);
+  const frame = usePlayer(run, 0, run.length, choice.picked !== null);
   return (
     <>
-      <p className="ask">Which trail is the flag&apos;s?</p>
-      <MiniShelf values={puzzle.shelf} large />
+      <p className="ask">Which line is the banner&apos;s height?</p>
+      <p className="suspect">Each line shows the banner after every scroll, left to right.</p>
+      <ScrollBoard frame={frame} array="scrolls" scalars={[]} />
       <div className="options row">
         {puzzle.options.map((id) => {
           const trail = traceOf(puzzle.shelf, id);
@@ -284,10 +287,16 @@ function BugQuestion({ puzzle, ...choice }: { puzzle: BugPuzzle } & ChoiceProps)
   const bug = BUGS[puzzle.bug];
   return (
     <>
-      <p className="ask">
-        <span aria-hidden>🕵️ </span>Find the shelf that fools this plan
-      </p>
-      <p className="suspect">It {bug.label}.</p>
+      <p className="ask">Spot the mistake</p>
+      <p className="suspect">A clumsy helper hunts for the tallest scroll. Here is his method:</p>
+      <ol className="plan-steps">
+        {bug.steps.map((text, i) => (
+          <li key={i} className={choice.picked !== null && i === bug.bad ? "bad" : ""}>
+            {text}
+          </li>
+        ))}
+      </ol>
+      <p className="suspect">Try it on each shelf. Which one makes him report the wrong height?</p>
       <div className="options row">
         {puzzle.shelves.map((shelf, i) => (
           <Option key={shelf.join()} value={String(i)} label={`Shelf ${shelf.join(", ")}`} {...choice}>
@@ -329,7 +338,7 @@ function MiniShelf({ values, large = false }: { values: number[]; large?: boolea
   );
 }
 
-/** A step line of the flag's height after each scroll. */
+/** A step line of the banner's height after each scroll. */
 function Trail({ trail, top }: { trail: number[]; top: number }) {
   const lo = Math.min(0, ...trail);
   const hi = Math.max(lo + 1, top);

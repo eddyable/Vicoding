@@ -5,7 +5,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 /** Right answers for a fresh player's first sitting, in the order the puzzles come. */
-const FIRST_SITTING = ["moves", "9", "max", "stays", "1"];
+const FIRST_SITTING = ["moves", "8", "stays", "9", "stays"];
 
 async function answer(page: Page, value: string) {
   await page.locator(`[data-answer="${value}"]`).click();
@@ -25,7 +25,7 @@ test("practice: watch, answer five micro-puzzles, see the score, and the map rem
   await expect(page.getByText(/Next review tomorrow/)).toBeVisible();
 
   await page.getByRole("button", { name: "Map", exact: true }).click();
-  await expect(page.getByRole("button", { name: /Quick practice/ })).toContainText("3 ready");
+  await expect(page.getByRole("button", { name: /Quick practice/ })).toContainText("6 ready");
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("vicoding:v0:practice") ?? "{}") as Record<string, { box: number }>);
   expect(Object.values(stored).map((c) => c.box)).toEqual([1, 1, 1, 1, 1]);
 });
@@ -53,9 +53,9 @@ test("practice: a wrong answer comes back once more and returns first next sitti
   await page.getByRole("button", { name: "Map", exact: true }).click();
   await page.getByRole("button", { name: /Quick practice/ }).click();
   await page.getByRole("button", { name: /Ready/ }).click();
-  // The missed puzzle is due again, so it leads the next sitting, followed by the three never seen.
-  await expect(page.getByText("Does the flag move?")).toBeVisible();
-  await expect(page.locator(".dots .dot")).toHaveCount(4);
+  // The missed puzzle is due again, so it leads the next sitting, followed by the new ones.
+  await expect(page.getByText("Does the banner rise?")).toBeVisible();
+  await expect(page.locator(".dots .dot")).toHaveCount(5);
 });
 
 test("practice: fits a phone without sideways scrolling", async ({ page }) => {

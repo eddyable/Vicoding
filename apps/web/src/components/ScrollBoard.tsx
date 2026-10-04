@@ -13,7 +13,7 @@ const CHART_HEIGHT = 150;
 const STUB = 14;
 const WALKER = 36;
 
-const WALKERS = ["🧙", "🧝", "🧚"];
+const WALKERS = ["💂", "🧝", "🧚"];
 
 interface ScrollBoardProps {
   frame: Frame;

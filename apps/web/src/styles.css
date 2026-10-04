@@ -927,6 +927,14 @@ section,
   color: var(--red);
 }
 
+.hand-nudge {
+  margin: 0;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius);
+  background: var(--amber-soft);
+  font-weight: 600;
+}
+
 .note {
   margin: 0;
   font-size: 0.85rem;
@@ -2064,6 +2072,24 @@ button.code-line:hover {
   text-align: center;
   color: var(--muted);
   font-size: 1.05rem;
+}
+.plan-steps {
+  margin: 0;
+  padding: 0.7rem 0.9rem 0.7rem 2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.35rem;
+  font-size: 1rem;
+}
+.plan-steps li.bad {
+  background: var(--red-soft);
+  color: var(--red);
+  border-radius: 6px;
+  font-weight: 700;
+  margin-left: -0.3rem;
+  padding-left: 0.3rem;
 }
 .retry-tag {
   margin: 0;

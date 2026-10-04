@@ -9,9 +9,9 @@ The **v0 vertical slice** from the [PRD](prd/PRD-v0-vertical-slice.md) is built 
 - 5 playable levels in Arraia (find max, reverse, fix an off-by-one, Two Sum II, Move Zeroes) with Hand Mode, an animated board and timeline, a card editor (tap and drag), Charge scoring with stars, the Jester's fuzzing, the growth chart and Ogre, rewind to the failing step, and code reveal in Python and JavaScript.
 - The **Final Trial** (Valid Palindrome in plain Python via in-browser Pyodide), a survey, and the 24-hour follow-up link and reminder.
 - Anonymous analytics with consent, a researcher export (`?export=1`), and an analysis CLI for the PRD metrics.
-- **Quick practice** (prototype, `?practice=1` or the map card): a ~3-minute loop for one pattern (the tallest scroll). Watch it run, then spaced and interleaved micro-puzzles (does the flag move, where does it end, which trail is the flag's, find the shelf that fools a sneaky plan). Per-puzzle Leitner boxes with fixed waits (now, 1, 3, 7, 14 days) live in `localStorage` (`vicoding:v0:practice`); code is in `apps/web/src/practice/` and `PracticeScreen.tsx`. Not yet playtested; the card editor is meant to become its later "boss" step.
+- **Quick practice** (prototype, `?practice=1` or the map card): a ~3-minute loop for one pattern (the tallest scroll). Watch it run, then spaced and interleaved micro-puzzles (does the banner rise, where does it end; later, which line is the banner's height and which shelf fools a clumsy helper's method). The first sitting is only rise/end puzzles. Words match Level 1 (soldier, banner). Hand mode now nudges when a raise is missed or would lower the banner. Per-puzzle Leitner boxes with fixed waits (now, 1, 3, 7, 14 days) live in `localStorage` (`vicoding:v0:practice`); code is in `apps/web/src/practice/` and `PracticeScreen.tsx`. Not yet playtested; the card editor is meant to become its later "boss" step.
 - Installable, offline web app; Capacitor iOS and Android projects.
-- Tests: 156 unit tests and 38 Playwright end-to-end tests (desktop and phone).
+- Tests: 158 unit tests and 40 Playwright end-to-end tests (desktop and phone).
 
 What's **not** done:
 
