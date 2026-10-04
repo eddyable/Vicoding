@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Vicoding</string>
+    <string name="title_activity_main">Vicoding</string>
+    <string name="package_name">app.vicoding.game</string>
+    <string name="custom_url_scheme">app.vicoding.game</string>
+</resources>

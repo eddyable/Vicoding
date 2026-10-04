@@ -52,6 +52,8 @@ export default defineConfig({
     pyodideAssets(),
     VitePWA({
       registerType: "autoUpdate",
+      // Registered from main.tsx, and only on the web: the native app is already offline.
+      injectRegister: false,
       includeAssets: ["icon.svg"],
       manifest: {
         name: "Vicoding",

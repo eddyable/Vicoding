@@ -9,7 +9,8 @@
     "jsx": "react-jsx",
     "types": [
       "vite/client",
-      "node"
+      "node",
+      "vite-plugin-pwa/client"
     ]
   },
   "include": [

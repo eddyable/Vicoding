@@ -188,6 +188,14 @@ Landing (web link / app icon)
 | 4 | Transfer test (Pyodide), analytics, Capacitor iOS/Android builds, polish, bug bash |
 | 5 | Playtests and synthesis |
 
+### Implementation status (end of week 4)
+
+All **Must** requirements are implemented except part of **FR-62**: the native iOS and Android projects exist, but the signed TestFlight and Play builds still have to be produced on a Mac and with Android Studio ([mobile.md](../mobile.md)).
+
+These **Should** items are also done: FR-4, FR-15, FR-33 (fuzzing with shrinking), FR-34 (growth chart), FR-53 (follow-up link and native reminder) and FR-63 (offline). Not built: FR-27 (breakpoints, a *Could*).
+
+See [playtest.md](../playtest.md) for running week 5.
+
 ## 13. Risks
 
 | Risk | Impact | Mitigation |

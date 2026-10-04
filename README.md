@@ -13,7 +13,9 @@ packages/
   levels/   The five Arraia levels, reference solutions, Charge scoring, the Jester's fuzzing
   codegen/  Battle Plan → readable Python and JavaScript, line-linked to cards
 apps/
-  web/      Vite + React web app: level map, board, timeline, card editor, charge results
+  web/      Vite + React web app (installable, offline): levels, Final Trial (Python via Pyodide), survey, analytics
+  mobile/   Capacitor shell: iOS and Android projects around the web build
+tools/      Playtest analysis (PRD decision metrics)
 docs/       Game design, PRD, architecture decisions
 ```
 
@@ -31,3 +33,6 @@ pnpm build       # production build of the web app
 # End-to-end tests (Playwright, desktop + phone viewports)
 pnpm --filter @vicoding/web e2e
 ```
+
+- **Mobile apps:** see [`docs/mobile.md`](docs/mobile.md).
+- **Running the playtest and reading the results:** see [`docs/playtest.md`](docs/playtest.md).
